@@ -46,7 +46,8 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-50 h-full bg-white border-r border-gray-200 transition-all duration-300 lg:relative lg:translate-x-0",
+          "fixed top-0 left-0 z-50 h-screen bg-white border-r border-gray-200 transition-all duration-300 flex-shrink-0",
+          "lg:static lg:z-auto",
           isOpen ? "translate-x-0 w-64" : "-translate-x-full lg:translate-x-0 lg:w-20"
         )}
       >
@@ -130,8 +131,8 @@ interface HeaderProps {
 
 export function Header({ onMenuClick, title }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 lg:px-6">
-      <div className="flex items-center justify-between">
+    <header className="h-14 flex-shrink-0 bg-white border-b border-gray-100 px-4 lg:px-6">
+      <div className="h-full flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button
             variant="ghost"
@@ -158,17 +159,19 @@ export function MainLayout({ children, sidebar, title }: MainLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="h-screen bg-gray-50 flex overflow-hidden">
       <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
       
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 h-screen">
         <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} title={title} />
         
         <div className="flex-1 flex overflow-hidden">
           {/* Optional page-specific sidebar */}
           {sidebar && (
-            <div className="hidden md:block w-80 bg-white border-r border-gray-100 overflow-y-auto">
-              {sidebar}
+            <div className="hidden md:flex md:flex-col w-80 bg-white border-r border-gray-100 flex-shrink-0">
+              <div className="flex-1 overflow-y-auto">
+                {sidebar}
+              </div>
             </div>
           )}
           
