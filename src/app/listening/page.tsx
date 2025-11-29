@@ -32,6 +32,11 @@ export default function ListeningPage() {
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [showCreator, setShowCreator] = useState(false);
+  const [tempExercise, setTempExercise] = useState<{
+    title: string;
+    level: string;
+    originalText: string;
+  } | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -43,16 +48,21 @@ export default function ListeningPage() {
 
   const handleCreateExercise = useCallback(
     async (title: string, context: string, level: LessonLevel) => {
-      setIsLoading(true);
+      // Switch to viewer immediately with loading state
+      setTempExercise({ title, level, originalText: context });
+      setShowCreator(false);
+      setIsGeneratingContent(true);
+      
       try {
-        // Create exercise and switch to viewer immediately
+        // Create exercise in background
         await createListeningExercise(title, context);
-        setShowCreator(false);
-        setIsGeneratingContent(true);
+        setTempExercise(null);
       } catch (error) {
         console.error('Error creating exercise:', error);
+        // Go back to creator on error
+        setShowCreator(true);
+        setTempExercise(null);
       } finally {
-        setIsLoading(false);
         setIsGeneratingContent(false);
       }
     },
@@ -124,8 +134,8 @@ export default function ListeningPage() {
         />
       }
     >
-      <div className={showCreator || !currentListeningExercise ? "p-6" : "p-6 h-full flex flex-col"}>
-        {showCreator || !currentListeningExercise ? (
+      <div className={showCreator || (!currentListeningExercise && !tempExercise) ? "p-6" : "p-6 h-full flex flex-col"}>
+        {showCreator || (!currentListeningExercise && !tempExercise) ? (
           <ListeningExerciseCreator
             onCreateExercise={handleCreateExercise}
             onGenerateText={handleGenerateText}
@@ -135,7 +145,17 @@ export default function ListeningPage() {
         ) : (
           <div className="flex-1 flex flex-col min-h-0">
             <ListeningExerciseViewer
-              exercise={currentListeningExercise}
+              exercise={currentListeningExercise || {
+                id: 'temp',
+                title: tempExercise?.title || '',
+                level: (tempExercise?.level as LessonLevel) || 'C1',
+                originalText: tempExercise?.originalText || '',
+                context: tempExercise?.originalText || '',
+                targetLanguage: settings.targetLanguage,
+                nativeLanguage: settings.nativeLanguage,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              }}
               onGenerateAudio={handleGenerateAudio}
               onEvaluate={handleEvaluate}
               isLoading={isLoading}
