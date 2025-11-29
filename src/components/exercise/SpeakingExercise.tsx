@@ -182,6 +182,8 @@ export function SpeakingExerciseViewer({
     setIsEvaluating(true);
     try {
       await onEvaluate(recordingBlob);
+      // Reset recording blob after successful evaluation
+      setRecordingBlob(null);
       // Switch to results tab after evaluation
       setActiveTab('results');
     } finally {
