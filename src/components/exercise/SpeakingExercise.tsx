@@ -227,59 +227,60 @@ export function SpeakingExerciseViewer({
         </div>
 
         {/* Tab Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto">
-          <CardContent className="p-6">
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <CardContent className="p-6 flex-1 flex flex-col min-h-0">
             {/* Text to Read Tab */}
             {activeTab === 'text' && (
-              <div className="space-y-6">
-                {/* Text Display */}
-                <div>
+              <div className="h-full flex flex-col">
+                {/* Text Display - Scrollable */}
+                <div className="flex-1 overflow-y-auto">
                   <p className="text-lg leading-relaxed text-gray-800 bg-gray-50 rounded-lg p-6">
                     {exercise.originalText}
                   </p>
+
+                  {/* Show hint to see results if feedback exists */}
+                  {exercise.feedback && (
+                    <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center justify-between">
+                      <p className="text-green-700">
+                        Your recording has been evaluated! Check the results tab.
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setActiveTab('results')}
+                        className="border-green-600 text-green-600 hover:bg-green-50"
+                      >
+                        View Results
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
-                {/* Recording Section */}
+                {/* Recording Section - Fixed at bottom */}
                 {!exercise.feedback && (
-                  <div className="space-y-4 pt-4 border-t border-gray-100">
-                    <h4 className="font-semibold text-gray-900">Your Recording</h4>
-                    <p className="text-sm text-gray-600">
-                      Read the text above aloud. When you&apos;re ready, click the button to start recording.
-                    </p>
-                    <AudioRecorder onRecordingComplete={handleRecordingComplete} />
-                    {recordingBlob && (
-                      <Button
-                        onClick={handleEvaluate}
-                        disabled={isEvaluating || isLoading}
-                        className="w-full"
-                      >
-                        {isEvaluating ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            Evaluating...
-                          </>
-                        ) : (
-                          'Submit for Evaluation'
-                        )}
-                      </Button>
-                    )}
-                  </div>
-                )}
-
-                {/* Show hint to see results if feedback exists */}
-                {exercise.feedback && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center justify-between">
-                    <p className="text-green-700">
-                      Your recording has been evaluated! Check the results tab.
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setActiveTab('results')}
-                      className="border-green-600 text-green-600 hover:bg-green-50"
-                    >
-                      View Results
-                    </Button>
+                  <div className="flex-shrink-0 pt-4 mt-4 border-t border-gray-200 bg-white">
+                    <div className="text-center space-y-4">
+                      <p className="text-sm text-gray-600">
+                        Read the text above aloud. When you&apos;re ready, click the button to start recording.
+                      </p>
+                      <AudioRecorder onRecordingComplete={handleRecordingComplete} />
+                      {recordingBlob && (
+                        <Button
+                          onClick={handleEvaluate}
+                          disabled={isEvaluating || isLoading}
+                          className="w-full max-w-md mx-auto"
+                        >
+                          {isEvaluating ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              Evaluating...
+                            </>
+                          ) : (
+                            'Submit for Evaluation'
+                          )}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
