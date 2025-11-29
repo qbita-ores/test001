@@ -14,6 +14,7 @@ import { OpenAIAudioAdapter } from '@/infrastructure/adapters/OpenAIAudioAdapter
 import { GeminiAudioAdapter } from '@/infrastructure/adapters/GeminiAudioAdapter';
 import { ITextProviderPort } from '@/domain/ports/TextProviderPort';
 import { IAudioProviderPort } from '@/domain/ports/AudioProviderPort';
+import { Lesson } from '@/domain/entities/Lesson';
 
 export function useServices() {
   const { settings } = useAppStore();
@@ -290,15 +291,17 @@ export function useLesson() {
     [lessonService, settings, currentChat, addLesson, setCurrentLesson]
   );
 
-  const generateContent = useCallback(async () => {
-    if (!currentLesson) return;
+  const generateContent = useCallback(async (lessonToGenerate?: Lesson | null) => {
+    const lesson = lessonToGenerate || currentLesson;
+    if (!lesson) return;
     const updatedLesson = await lessonService.generateLessonContent(
-      currentLesson,
+      lesson,
       currentChat?.messages
     );
     updateLesson(updatedLesson);
+    setCurrentLesson(updatedLesson);
     return updatedLesson;
-  }, [lessonService, currentLesson, currentChat, updateLesson]);
+  }, [lessonService, currentLesson, currentChat, updateLesson, setCurrentLesson]);
 
   const suggestContext = useCallback(async () => {
     return lessonService.suggestContext(

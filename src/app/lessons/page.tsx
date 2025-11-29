@@ -42,8 +42,8 @@ export default function LessonsPage() {
     async (title: string, context: string, level: LessonLevel) => {
       setIsLoading(true);
       try {
-        await createLesson(title, context);
-        await generateContent();
+        const newLesson = await createLesson(title, context);
+        await generateContent(newLesson);
         setShowCreator(false);
       } finally {
         setIsLoading(false);

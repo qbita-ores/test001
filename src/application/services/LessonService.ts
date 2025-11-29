@@ -56,13 +56,8 @@ export class LessonService {
       conversationContext,
     });
 
-    let content: LessonContent;
-    try {
-      content = JSON.parse(response);
-    } catch {
-      // If parsing fails, create a structured response from text
-      content = this.parseUnstructuredContent(response);
-    }
+    // Use the centralized parser from PromptTemplates
+    const content: LessonContent = PromptTemplates.lesson.parseResponse(response);
 
     const updatedLesson = updateLessonContent(lesson, content);
     await this.storage.saveLesson(updatedLesson);

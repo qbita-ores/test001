@@ -51,7 +51,11 @@ Return ONLY a JSON array of 3 strings, no explanations. Example: ["Suggestion 1"
     ): string =>
       `You are an expert language teacher creating a ${level} level lesson for learning ${targetLanguage}. The student's native language is ${nativeLanguage}.
 
-Create a structured lesson and return it as valid JSON with the following format:
+CRITICAL: You MUST respond with ONLY a valid JSON object, no other text before or after.
+Do NOT include any introductory text like "Of course", "Here is", "Sure", etc.
+Do NOT include markdown formatting or code blocks.
+
+The JSON format MUST be exactly:
 {
   "vocabulary": [
     {"term": "word in ${targetLanguage}", "definition": "definition in ${nativeLanguage}", "example": "example sentence in ${targetLanguage}"}
@@ -64,14 +68,62 @@ Create a structured lesson and return it as valid JSON with the following format
   ]
 }
 
-Include 5-10 vocabulary items, 2-3 grammar points, and 2-3 verb conjugations relevant to the topic.`,
+Include 5-10 vocabulary items, 2-3 grammar points, and 2-3 verb conjugations relevant to the topic.
+Return ONLY the JSON object, nothing else.`,
 
     userPrompt: (context: string, conversationContext?: Message[]): string => {
       let prompt = `Create a lesson about: ${context}`;
       if (conversationContext && conversationContext.length > 0) {
         prompt += `\n\nBase the lesson on this conversation context:\n${conversationContext.map((m) => `${m.role}: ${m.content}`).join('\n')}`;
       }
+      prompt += '\n\nRemember: Return ONLY the JSON object, no explanations or markdown.';
       return prompt;
+    },
+    
+    // Helper to parse the lesson response
+    parseResponse: (response: string): { vocabulary: Array<{ term: string; definition: string; example: string }>; grammar: Array<{ title: string; explanation: string; examples: string[] }>; conjugations: Array<{ verb: string; tense: string; conjugations: Record<string, string> }> } => {
+      // Clean up the response - remove markdown code blocks if present
+      let cleanedResponse = response.trim();
+      
+      // Remove ```json ... ``` or ``` ... ``` wrappers
+      const codeBlockMatch = cleanedResponse.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (codeBlockMatch) {
+        cleanedResponse = codeBlockMatch[1].trim();
+      }
+
+      // First, try to parse the cleaned response as JSON
+      try {
+        const parsed = JSON.parse(cleanedResponse);
+        return {
+          vocabulary: Array.isArray(parsed.vocabulary) ? parsed.vocabulary : [],
+          grammar: Array.isArray(parsed.grammar) ? parsed.grammar : [],
+          conjugations: Array.isArray(parsed.conjugations) ? parsed.conjugations : [],
+        };
+      } catch {
+        // Not valid JSON, try to extract JSON from the response
+      }
+
+      // Try to extract JSON object from the response (in case there's extra text)
+      try {
+        const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          return {
+            vocabulary: Array.isArray(parsed.vocabulary) ? parsed.vocabulary : [],
+            grammar: Array.isArray(parsed.grammar) ? parsed.grammar : [],
+            conjugations: Array.isArray(parsed.conjugations) ? parsed.conjugations : [],
+          };
+        }
+      } catch {
+        // JSON extraction failed
+      }
+
+      // Return empty content as fallback
+      return {
+        vocabulary: [],
+        grammar: [],
+        conjugations: [],
+      };
     },
   },
 
