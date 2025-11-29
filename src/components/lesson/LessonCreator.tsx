@@ -255,16 +255,10 @@ interface LessonViewerProps {
   isLoading?: boolean;
 }
 
-export function LessonViewer({ lesson, onGenerateAudio, isLoading = false }: LessonViewerProps) {
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    vocabulary: true,
-    grammar: true,
-    conjugations: true,
-  });
+type TabType = 'vocabulary' | 'grammar' | 'conjugations';
 
-  const toggleSection = (section: string) => {
-    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
-  };
+export function LessonViewer({ lesson, onGenerateAudio, isLoading = false }: LessonViewerProps) {
+  const [activeTab, setActiveTab] = useState<TabType>('vocabulary');
 
   const hasContent = lesson.content.vocabulary.length > 0 || 
                      lesson.content.grammar.length > 0 || 
@@ -272,6 +266,12 @@ export function LessonViewer({ lesson, onGenerateAudio, isLoading = false }: Les
 
   // Show loading state when isLoading is true OR when lesson has no content yet
   const showLoading = isLoading || !hasContent;
+
+  const tabs: { id: TabType; label: string }[] = [
+    { id: 'vocabulary', label: 'Vocabulary' },
+    { id: 'grammar', label: 'Grammar' },
+    { id: 'conjugations', label: 'Conjugations' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -302,163 +302,142 @@ export function LessonViewer({ lesson, onGenerateAudio, isLoading = false }: Les
               <span>This may take a few moments</span>
             </div>
             
-            {/* Animated placeholder sections */}
-            <div className="w-full space-y-3 mt-4">
-              <div className="h-12 bg-gray-100 rounded-lg animate-pulse flex items-center px-4">
-                <div className="w-8 h-8 rounded-full bg-green-100 mr-3"></div>
-                <div className="h-4 bg-gray-200 rounded w-32"></div>
+            {/* Animated placeholder tabs */}
+            <div className="w-full mt-4">
+              <div className="flex space-x-8 border-b border-gray-200 pb-2">
+                <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-28 animate-pulse"></div>
               </div>
-              <div className="h-12 bg-gray-100 rounded-lg animate-pulse flex items-center px-4">
-                <div className="w-8 h-8 rounded-full bg-blue-100 mr-3"></div>
-                <div className="h-4 bg-gray-200 rounded w-28"></div>
-              </div>
-              <div className="h-12 bg-gray-100 rounded-lg animate-pulse flex items-center px-4">
-                <div className="w-8 h-8 rounded-full bg-purple-100 mr-3"></div>
-                <div className="h-4 bg-gray-200 rounded w-36"></div>
+              <div className="mt-6 space-y-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="space-y-2 pb-4 border-b border-gray-100">
+                    <div className="h-5 bg-gray-200 rounded w-32 animate-pulse"></div>
+                    <div className="h-4 bg-gray-100 rounded w-full animate-pulse"></div>
+                    <div className="h-4 bg-blue-50 rounded w-3/4 animate-pulse"></div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </Card>
       ) : (
-        /* Content Sections */
-        <>
-          {/* Vocabulary Section */}
-          <Card>
-            <button
-              onClick={() => toggleSection('vocabulary')}
-              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50"
-            >
-              <h3 className="text-lg font-semibold flex items-center">
-                <span className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center mr-3 text-sm">
-                  V
-                </span>
-                Vocabulary ({lesson.content.vocabulary.length})
-              </h3>
-              {expandedSections.vocabulary ? (
-                <ChevronUp className="h-5 w-5 text-gray-400" />
-              ) : (
-                <ChevronDown className="h-5 w-5 text-gray-400" />
-              )}
-            </button>
-            {expandedSections.vocabulary && (
-              <CardContent className="pt-0">
-                <div className="grid gap-4">
-                  {lesson.content.vocabulary.map((item, index) => (
-                    <div
-                      key={index}
-                      className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-900">{item.term}</p>
-                          <p className="text-sm text-gray-600 mt-1">{item.definition}</p>
-                          {item.example && (
-                            <p className="text-sm text-blue-600 mt-2 italic">
-                              &quot;{item.example}&quot;
-                            </p>
-                          )}
-                        </div>
-                        {onGenerateAudio && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onGenerateAudio(item.term)}
-                            className="h-8 w-8"
-                          >
-                        <Volume2 className="h-4 w-4" />
-                      </Button>
+        /* Tabs Content */
+        <Card>
+          {/* Tab Headers */}
+          <div className="border-b border-gray-200">
+            <div className="flex space-x-8 px-6">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    'py-4 text-sm font-medium border-b-2 transition-colors',
+                    activeTab === tab.id
+                      ? 'border-blue-600 text-gray-900'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <CardContent className="p-6">
+            {/* Vocabulary Tab */}
+            {activeTab === 'vocabulary' && (
+              <div className="space-y-6">
+                {lesson.content.vocabulary.map((item, index) => (
+                  <div
+                    key={index}
+                    className="pb-6 border-b border-gray-100 last:border-0 last:pb-0"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900">{item.term}</p>
+                        <p className="text-sm text-gray-600 mt-1">{item.definition}</p>
+                        {item.example && (
+                          <p className="text-sm text-blue-600 mt-2 italic">
+                            &quot;{item.example}&quot;
+                          </p>
+                        )}
+                      </div>
+                      {onGenerateAudio && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onGenerateAudio(item.term)}
+                          className="h-8 w-8 ml-2"
+                        >
+                          <Volume2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {lesson.content.vocabulary.length === 0 && (
+                  <p className="text-gray-500 text-center py-8">No vocabulary items yet.</p>
+                )}
+              </div>
+            )}
+
+            {/* Grammar Tab */}
+            {activeTab === 'grammar' && (
+              <div className="space-y-6">
+                {lesson.content.grammar.map((point, index) => (
+                  <div key={index} className="pb-6 border-b border-gray-100 last:border-0 last:pb-0">
+                    <h4 className="font-semibold text-gray-900">{point.title}</h4>
+                    <p className="text-sm text-gray-600 mt-2">{point.explanation}</p>
+                    {point.examples.length > 0 && (
+                      <div className="mt-3 space-y-1">
+                        {point.examples.map((example, i) => (
+                          <p key={i} className="text-sm text-blue-600 italic">
+                            &quot;{example}&quot;
+                          </p>
+                        ))}
+                      </div>
                     )}
                   </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        )}
-      </Card>
+                ))}
+                {lesson.content.grammar.length === 0 && (
+                  <p className="text-gray-500 text-center py-8">No grammar points yet.</p>
+                )}
+              </div>
+            )}
 
-      {/* Grammar Section */}
-      <Card>
-        <button
-          onClick={() => toggleSection('grammar')}
-          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50"
-        >
-          <h3 className="text-lg font-semibold flex items-center">
-            <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-3 text-sm">
-              G
-            </span>
-            Grammar ({lesson.content.grammar.length})
-          </h3>
-          {expandedSections.grammar ? (
-            <ChevronUp className="h-5 w-5 text-gray-400" />
-          ) : (
-            <ChevronDown className="h-5 w-5 text-gray-400" />
-          )}
-        </button>
-        {expandedSections.grammar && (
-          <CardContent className="pt-0">
-            <div className="space-y-6">
-              {lesson.content.grammar.map((point, index) => (
-                <div key={index} className="border-b border-gray-100 pb-4 last:border-0">
-                  <h4 className="font-medium text-gray-900">{point.title}</h4>
-                  <p className="text-sm text-gray-600 mt-2">{point.explanation}</p>
-                  {point.examples.length > 0 && (
-                    <div className="mt-3 space-y-1">
-                      {point.examples.map((example, i) => (
-                        <p key={i} className="text-sm text-blue-600 italic">
-                          • {example}
-                        </p>
+            {/* Conjugations Tab */}
+            {activeTab === 'conjugations' && (
+              <div className="space-y-6">
+                {lesson.content.conjugations.map((table, index) => (
+                  <div key={index} className="pb-6 border-b border-gray-100 last:border-0 last:pb-0">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-semibold text-gray-900">{table.verb}</h4>
+                      <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                        {table.tense}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {Object.entries(table.conjugations).map(([pronoun, conjugation]) => (
+                        <div
+                          key={pronoun}
+                          className="flex justify-between bg-gray-50 rounded px-3 py-2 text-sm"
+                        >
+                          <span className="text-gray-500">{pronoun}</span>
+                          <span className="font-medium text-gray-900">{conjugation}</span>
+                        </div>
                       ))}
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        )}
-      </Card>
-
-      {/* Conjugations Section */}
-      <Card>
-        <button
-          onClick={() => toggleSection('conjugations')}
-          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50"
-        >
-          <h3 className="text-lg font-semibold flex items-center">
-            <span className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mr-3 text-sm">
-              C
-            </span>
-            Conjugations ({lesson.content.conjugations.length})
-          </h3>
-          {expandedSections.conjugations ? (
-            <ChevronUp className="h-5 w-5 text-gray-400" />
-          ) : (
-            <ChevronDown className="h-5 w-5 text-gray-400" />
-          )}
-        </button>
-        {expandedSections.conjugations && (
-          <CardContent className="pt-0">
-            <div className="space-y-6">
-              {lesson.content.conjugations.map((table, index) => (
-                <div key={index} className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-semibold text-gray-900">{table.verb}</span>
-                    <span className="text-sm text-gray-500">{table.tense}</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    {Object.entries(table.conjugations).map(([pronoun, conjugation]) => (
-                      <div key={pronoun} className="flex justify-between bg-white rounded px-3 py-2">
-                        <span className="text-gray-500">{pronoun}</span>
-                        <span className="font-medium text-gray-900">{conjugation}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+                {lesson.content.conjugations.length === 0 && (
+                  <p className="text-gray-500 text-center py-8">No conjugations yet.</p>
+                )}
+              </div>
+            )}
           </CardContent>
-        )}
-      </Card>
-        </>
+        </Card>
       )}
     </div>
   );
