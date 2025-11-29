@@ -29,6 +29,7 @@ export default function ListeningPage() {
   const { settings } = useAppStore();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingContent, setIsGeneratingContent] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [showCreator, setShowCreator] = useState(false);
 
@@ -44,10 +45,15 @@ export default function ListeningPage() {
     async (title: string, context: string, level: LessonLevel) => {
       setIsLoading(true);
       try {
+        // Create exercise and switch to viewer immediately
         await createListeningExercise(title, context);
         setShowCreator(false);
+        setIsGeneratingContent(true);
+      } catch (error) {
+        console.error('Error creating exercise:', error);
       } finally {
         setIsLoading(false);
+        setIsGeneratingContent(false);
       }
     },
     [createListeningExercise]
@@ -133,6 +139,7 @@ export default function ListeningPage() {
               onGenerateAudio={handleGenerateAudio}
               onEvaluate={handleEvaluate}
               isLoading={isLoading}
+              isGenerating={isGeneratingContent}
             />
           </div>
         )}

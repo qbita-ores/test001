@@ -28,6 +28,7 @@ export default function SpeakingPage() {
   const { settings } = useAppStore();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingContent, setIsGeneratingContent] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [showCreator, setShowCreator] = useState(false);
 
@@ -43,10 +44,15 @@ export default function SpeakingPage() {
     async (title: string, context: string, level: LessonLevel) => {
       setIsLoading(true);
       try {
+        // Create exercise and switch to viewer immediately
         await createSpeakingExercise(title, context);
         setShowCreator(false);
+        setIsGeneratingContent(true);
+      } catch (error) {
+        console.error('Error creating exercise:', error);
       } finally {
         setIsLoading(false);
+        setIsGeneratingContent(false);
       }
     },
     [createSpeakingExercise]
@@ -122,6 +128,7 @@ export default function SpeakingPage() {
               exercise={currentSpeakingExercise}
               onEvaluate={handleEvaluate}
               isLoading={isLoading}
+              isGenerating={isGeneratingContent}
             />
           </div>
         )}

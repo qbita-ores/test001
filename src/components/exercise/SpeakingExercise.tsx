@@ -160,6 +160,7 @@ interface SpeakingExerciseViewerProps {
   exercise: SpeakingExercise;
   onEvaluate: (recordingBlob: Blob) => Promise<void>;
   isLoading?: boolean;
+  isGenerating?: boolean;
 }
 
 type SpeakingTabType = 'text' | 'results';
@@ -168,6 +169,7 @@ export function SpeakingExerciseViewer({
   exercise,
   onEvaluate,
   isLoading = false,
+  isGenerating = false,
 }: SpeakingExerciseViewerProps) {
   const [activeTab, setActiveTab] = useState<SpeakingTabType>('text');
   const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null);
@@ -195,6 +197,42 @@ export function SpeakingExerciseViewer({
     { id: 'text', label: 'Text to Read' },
     { id: 'results', label: 'Evaluation Results' },
   ];
+
+  // Show loading state
+  if (isGenerating) {
+    return (
+      <div className="h-full flex flex-col">
+        {/* Header - Fixed */}
+        <div className="flex-shrink-0 bg-gradient-to-r from-green-600 to-teal-600 rounded-t-xl p-6 text-white">
+          <h2 className="text-2xl font-bold">{exercise.title}</h2>
+          <span className="inline-block mt-2 px-3 py-1 bg-white/20 rounded-full text-sm">
+            Level {exercise.level}
+          </span>
+        </div>
+
+        <Card className="flex-1 flex flex-col overflow-hidden rounded-t-none border-t-0">
+          <div className="flex-1 flex items-center justify-center p-8">
+            <div className="flex flex-col items-center space-y-6">
+              <div className="relative">
+                <div className="w-20 h-20 border-4 border-green-200 rounded-full animate-spin border-t-green-600"></div>
+                <Mic className="absolute inset-0 m-auto h-8 w-8 text-green-600" />
+              </div>
+              <div className="text-center space-y-2">
+                <h3 className="text-xl font-semibold text-gray-800">Creating Exercise</h3>
+                <p className="text-gray-500">
+                  Preparing your speaking exercise...
+                </p>
+              </div>
+              <div className="flex items-center space-x-2 text-sm text-gray-400">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>This may take a few moments</span>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col">
