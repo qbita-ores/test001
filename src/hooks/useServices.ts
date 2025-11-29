@@ -16,7 +16,7 @@ import { ITextProviderPort } from '@/domain/ports/TextProviderPort';
 import { IAudioProviderPort } from '@/domain/ports/AudioProviderPort';
 import { Lesson } from '@/domain/entities/Lesson';
 import { Programme, createProgramme, updateProgramme as updateProgrammeEntity, publishProgramme, archiveProgramme, addCourseToProgramme, removeCoursFromProgramme, reorderProgrammeCourses } from '@/domain/entities/Programme';
-import { Course, createCourse, updateCourse as updateCourseEntity } from '@/domain/entities/Course';
+import { Course, createCourse, updateCourse as updateCourseEntity, publishCourse, archiveCourse, addLessonToCourse, removeLessonFromCourse, reorderCourseLessons } from '@/domain/entities/Course';
 
 export function useServices() {
   const { settings } = useAppStore();
@@ -751,6 +751,7 @@ export function useCourse() {
   const {
     courses,
     currentCourse,
+    lessons,
     settings,
     setCourses,
     setCurrentCourse,
@@ -773,6 +774,8 @@ export function useCourse() {
       targetLanguage: string;
       nativeLanguage: string;
       tags: string[];
+      objectives: string[];
+      prerequisites: string[];
       estimatedHours: number;
     }) => {
       const course = createCourse(
@@ -784,6 +787,8 @@ export function useCourse() {
         'current-user' // TODO: Replace with actual user ID
       );
       course.tags = data.tags;
+      course.objectives = data.objectives;
+      course.prerequisites = data.prerequisites;
       course.duration = {
         estimatedHours: data.estimatedHours,
         lessonsCount: 0,
@@ -809,6 +814,22 @@ export function useCourse() {
     [storage, currentCourse, updateCourseInStore]
   );
 
+  const publishCurrentCourse = useCallback(async () => {
+    if (!currentCourse) return;
+    const published = publishCourse(currentCourse);
+    await storage.saveCourse(published);
+    updateCourseInStore(published);
+    return published;
+  }, [storage, currentCourse, updateCourseInStore]);
+
+  const archiveCurrentCourse = useCallback(async () => {
+    if (!currentCourse) return;
+    const archived = archiveCourse(currentCourse);
+    await storage.saveCourse(archived);
+    updateCourseInStore(archived);
+    return archived;
+  }, [storage, currentCourse, updateCourseInStore]);
+
   const deleteCourse = useCallback(
     async (id: string) => {
       await storage.deleteCourse(id);
@@ -825,14 +846,61 @@ export function useCourse() {
     [storage, setCurrentCourse]
   );
 
+  const addLesson = useCallback(
+    async (lessonId: string) => {
+      if (!currentCourse) return;
+      const updated = addLessonToCourse(currentCourse, lessonId);
+      await storage.saveCourse(updated);
+      updateCourseInStore(updated);
+      return updated;
+    },
+    [storage, currentCourse, updateCourseInStore]
+  );
+
+  const removeLessonFromCurrentCourse = useCallback(
+    async (lessonId: string) => {
+      if (!currentCourse) return;
+      const updated = removeLessonFromCourse(currentCourse, lessonId);
+      await storage.saveCourse(updated);
+      updateCourseInStore(updated);
+      return updated;
+    },
+    [storage, currentCourse, updateCourseInStore]
+  );
+
+  const reorderLessons = useCallback(
+    async (lessonIds: string[]) => {
+      if (!currentCourse) return;
+      const updated = reorderCourseLessons(currentCourse, lessonIds);
+      await storage.saveCourse(updated);
+      updateCourseInStore(updated);
+      return updated;
+    },
+    [storage, currentCourse, updateCourseInStore]
+  );
+
+  // Get lessons for current course
+  const courseLessons = useMemo(() => {
+    if (!currentCourse) return [];
+    return currentCourse.lessonIds
+      .map(id => lessons.find(l => l.id === id))
+      .filter((l): l is Lesson => l !== undefined);
+  }, [currentCourse, lessons]);
+
   return {
     courses,
     currentCourse,
+    courseLessons,
     loadCourses,
     createCourse: createNewCourse,
     updateCourse: updateCurrentCourse,
+    publishCourse: publishCurrentCourse,
+    archiveCourse: archiveCurrentCourse,
     deleteCourse,
     selectCourse,
     setCurrentCourse,
+    addLesson,
+    removeLesson: removeLessonFromCurrentCourse,
+    reorderLessons,
   };
 }

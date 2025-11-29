@@ -13,6 +13,7 @@ import {
   X,
   GraduationCap,
   ChevronLeft,
+  Library,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
@@ -25,6 +26,7 @@ interface SidebarProps {
 const navigation = [
   { name: 'Chat', href: '/', icon: MessageSquare, color: 'text-blue-600' },
   { name: 'Programmes', href: '/programmes', icon: GraduationCap, color: 'text-orange-600' },
+  { name: 'Cours', href: '/courses', icon: Library, color: 'text-teal-600' },
   { name: 'Lessons', href: '/lessons', icon: BookOpen, color: 'text-indigo-600' },
   { name: 'Speaking', href: '/speaking', icon: Mic, color: 'text-green-600' },
   { name: 'Listening', href: '/listening', icon: Headphones, color: 'text-purple-600' },
