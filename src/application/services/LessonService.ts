@@ -48,6 +48,11 @@ export class LessonService {
     lesson: Lesson,
     conversationContext?: Message[]
   ): Promise<Lesson> {
+    console.log('=== generateLessonContent START ===');
+    console.log('Lesson context:', lesson.context?.substring(0, 100));
+    console.log('Target language:', lesson.targetLanguage);
+    console.log('Native language:', lesson.nativeLanguage);
+    
     const response = await this.textProvider.generateLesson({
       context: lesson.context,
       level: lesson.level,
@@ -56,10 +61,23 @@ export class LessonService {
       conversationContext,
     });
 
+    console.log('=== AI RESPONSE ===');
+    console.log('Response length:', response?.length);
+    console.log('Response (first 500 chars):', response?.substring(0, 500));
+
     // Use the centralized parser from PromptTemplates
     const content: LessonContent = PromptTemplates.lesson.parseResponse(response);
 
+    console.log('=== PARSED CONTENT ===');
+    console.log('Vocabulary count:', content.vocabulary?.length);
+    console.log('Grammar count:', content.grammar?.length);
+    console.log('Conjugations count:', content.conjugations?.length);
+    console.log('Full content:', JSON.stringify(content, null, 2));
+
     const updatedLesson = updateLessonContent(lesson, content);
+    console.log('=== UPDATED LESSON ===');
+    console.log('Updated lesson content:', JSON.stringify(updatedLesson.content, null, 2));
+    
     await this.storage.saveLesson(updatedLesson);
     return updatedLesson;
   }
