@@ -36,11 +36,24 @@ export class OpenAITextAdapter implements ITextProviderPort {
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData?.error?.message || response.statusText;
+      throw new Error(`OpenAI API error: ${errorMessage}`);
     }
 
     const data = await response.json();
-    return data.choices[0].message.content;
+    
+    // Vérifier que la réponse contient des choices valides
+    if (!data.choices || data.choices.length === 0) {
+      throw new Error('No response generated from OpenAI API');
+    }
+
+    const choice = data.choices[0];
+    if (!choice.message?.content) {
+      throw new Error('Invalid response format from OpenAI API');
+    }
+
+    return choice.message.content;
   }
 
   async generateResponse(request: TextGenerationRequest): Promise<string> {

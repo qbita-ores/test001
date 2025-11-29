@@ -49,11 +49,34 @@ export class GeminiTextAdapter implements ITextProviderPort {
     });
 
     if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData?.error?.message || response.statusText;
+      throw new Error(`Gemini API error: ${errorMessage}`);
     }
 
     const data = await response.json();
-    return data.candidates[0].content.parts[0].text;
+    
+    // Vérifier que la réponse contient des candidates valides
+    if (!data.candidates || data.candidates.length === 0) {
+      // Vérifier si le contenu a été bloqué
+      if (data.promptFeedback?.blockReason) {
+        throw new Error(`Content blocked: ${data.promptFeedback.blockReason}`);
+      }
+      throw new Error('No response generated from Gemini API');
+    }
+
+    const candidate = data.candidates[0];
+    
+    // Vérifier si le candidate a été bloqué
+    if (candidate.finishReason === 'SAFETY') {
+      throw new Error('Response blocked due to safety settings');
+    }
+
+    if (!candidate.content?.parts?.[0]?.text) {
+      throw new Error('Invalid response format from Gemini API');
+    }
+
+    return candidate.content.parts[0].text;
   }
 
   async generateResponse(request: TextGenerationRequest): Promise<string> {
