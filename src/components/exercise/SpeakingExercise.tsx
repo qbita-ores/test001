@@ -10,11 +10,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { AudioRecorder } from '@/components/audio/AudioRecorder';
 import { SpeakingExercise, PronunciationFeedback } from '@/domain/entities/Exercise';
 import { LessonLevel } from '@/domain/entities/Lesson';
+import { ExerciseTextResponse } from '@/domain/prompts';
 import { cn } from '@/lib/utils';
 
 interface SpeakingExerciseCreatorProps {
   onCreateExercise: (title: string, context: string, level: LessonLevel) => Promise<void>;
-  onGenerateText: (partial: string) => Promise<string>;
+  onGenerateText: (partial: string) => Promise<ExerciseTextResponse>;
   isLoading?: boolean;
   defaultLevel?: LessonLevel;
 }
@@ -27,6 +28,7 @@ export function SpeakingExerciseCreator({
 }: SpeakingExerciseCreatorProps) {
   const [title, setTitle] = useState('');
   const [context, setContext] = useState('');
+  const [instructions, setInstructions] = useState<string | null>(null);
   const [level, setLevel] = useState<LessonLevel>(defaultLevel);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -39,18 +41,24 @@ export function SpeakingExerciseCreator({
   const handleGenerateText = useCallback(async () => {
     setIsGenerating(true);
     try {
-      const text = await onGenerateText(context);
-      setContext(text);
+      const response = await onGenerateText(context);
+      // Update title only if empty
+      if (!title.trim()) {
+        setTitle(response.title);
+      }
+      setContext(response.content);
+      setInstructions(response.instructions);
     } finally {
       setIsGenerating(false);
     }
-  }, [context, onGenerateText]);
+  }, [context, title, onGenerateText]);
 
   const handleSubmit = useCallback(async () => {
     if (!title.trim()) return;
     await onCreateExercise(title, context, level);
     setTitle('');
     setContext('');
+    setInstructions(null);
   }, [title, context, level, onCreateExercise]);
 
   return (
@@ -69,7 +77,7 @@ export function SpeakingExerciseCreator({
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g., Daily Routine Description"
+            placeholder="e.g., Daily Routine Description (or generate with AI)"
             disabled={isLoading}
           />
         </div>
@@ -102,21 +110,31 @@ export function SpeakingExerciseCreator({
               ) : (
                 <Sparkles className="h-4 w-4 mr-1" />
               )}
-              {context ? 'Complete' : 'Generate'}
+              {context ? 'Regenerate' : 'Generate'}
             </Button>
           </div>
           <Textarea
             value={context}
             onChange={(e) => setContext(e.target.value)}
             placeholder="Enter or generate a text for the student to read aloud..."
-            rows={5}
+            rows={6}
             disabled={isLoading}
           />
         </div>
 
+        {/* Instructions from AI (if any) */}
+        {instructions && (
+          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+            <label className="block text-sm font-medium text-blue-800 mb-1">
+              Instructions
+            </label>
+            <p className="text-sm text-blue-700">{instructions}</p>
+          </div>
+        )}
+
         <Button
           onClick={handleSubmit}
-          disabled={!title.trim() || isLoading}
+          disabled={!title.trim() || !context.trim() || isLoading}
           className="w-full"
         >
           {isLoading ? (

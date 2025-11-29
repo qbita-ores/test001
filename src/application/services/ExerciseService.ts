@@ -10,6 +10,7 @@ import {
 } from '../../domain/entities/Exercise';
 import { LessonLevel } from '../../domain/entities/Lesson';
 import { ITextProviderPort, IAudioProviderPort, IStoragePort } from '../../domain/ports';
+import { PromptTemplates, ExerciseTextResponse } from '../../domain/prompts';
 
 export class ExerciseService {
   constructor(
@@ -17,6 +18,13 @@ export class ExerciseService {
     private audioProvider: IAudioProviderPort,
     private storage: IStoragePort
   ) {}
+
+  /**
+   * Parse AI response to extract structured exercise text
+   */
+  private parseExerciseTextResponse(response: string): ExerciseTextResponse {
+    return PromptTemplates.exerciseText.parseResponse(response);
+  }
 
   // Speaking Exercise Methods
   async createSpeakingExercise(
@@ -27,17 +35,21 @@ export class ExerciseService {
     nativeLanguage: string,
     lessonId?: string
   ): Promise<SpeakingExercise> {
-    const text = await this.textProvider.generateExerciseText({
+    const response = await this.textProvider.generateExerciseText({
       partialText: context,
       purpose: 'exercise',
       targetLanguage,
       level,
     });
+    
+    const parsed = this.parseExerciseTextResponse(response);
+    // Use generated title if none provided, or if title is empty
+    const finalTitle = title && title.trim() ? title : parsed.title;
 
     const exercise = createSpeakingExercise(
-      title,
+      finalTitle,
       level,
-      text,
+      parsed.content,
       context,
       targetLanguage,
       nativeLanguage,
@@ -52,13 +64,14 @@ export class ExerciseService {
     partialText: string,
     targetLanguage: string,
     level: LessonLevel
-  ): Promise<string> {
-    return this.textProvider.generateExerciseText({
+  ): Promise<ExerciseTextResponse> {
+    const response = await this.textProvider.generateExerciseText({
       partialText,
       purpose: 'exercise',
       targetLanguage,
       level,
     });
+    return this.parseExerciseTextResponse(response);
   }
 
   async evaluateSpeaking(
@@ -122,17 +135,21 @@ export class ExerciseService {
     nativeLanguage: string,
     lessonId?: string
   ): Promise<ListeningExercise> {
-    const text = await this.textProvider.generateExerciseText({
+    const response = await this.textProvider.generateExerciseText({
       partialText: context,
       purpose: 'exercise',
       targetLanguage,
       level,
     });
 
+    const parsed = this.parseExerciseTextResponse(response);
+    // Use generated title if none provided, or if title is empty
+    const finalTitle = title && title.trim() ? title : parsed.title;
+
     const exercise = createListeningExercise(
-      title,
+      finalTitle,
       level,
-      text,
+      parsed.content,
       context,
       targetLanguage,
       nativeLanguage,
@@ -141,7 +158,7 @@ export class ExerciseService {
 
     // Generate audio for the exercise
     const audioBlob = await this.audioProvider.textToSpeech({
-      text,
+      text: parsed.content,
       language: targetLanguage,
     });
 
@@ -162,13 +179,14 @@ export class ExerciseService {
     partialText: string,
     targetLanguage: string,
     level: LessonLevel
-  ): Promise<string> {
-    return this.textProvider.generateExerciseText({
+  ): Promise<ExerciseTextResponse> {
+    const response = await this.textProvider.generateExerciseText({
       partialText,
       purpose: 'exercise',
       targetLanguage,
       level,
     });
+    return this.parseExerciseTextResponse(response);
   }
 
   async generateListeningAudio(

@@ -9,4 +9,8 @@ export type {
   PronunciationPrompts,
   ListeningPrompts,
   OfflinePrompts,
+  ExerciseTextResponse,
+  LessonResponse,
+  PronunciationResponse,
+  ListeningResponse,
 } from './PromptTemplates';

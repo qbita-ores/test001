@@ -82,7 +82,20 @@ Include 5-10 vocabulary items, 2-3 grammar points, and 2-3 verb conjugations rel
   
   exerciseText: {
     systemPrompt: (targetLanguage: string, level: LessonLevel): string =>
-      `You are a language learning content creator. Create engaging content in ${targetLanguage} appropriate for ${level} level students. The text should be interesting, educational, and suitable for language practice exercises.`,
+      `You are a language learning content creator. Create engaging content in ${targetLanguage} appropriate for ${level} level students.
+
+CRITICAL: You MUST respond with ONLY a valid JSON object, no other text before or after.
+Do NOT include any introductory text like "Of course", "Here is", "Sure", etc.
+Do NOT include markdown formatting like ### or **.
+
+The JSON format MUST be exactly:
+{
+  "title": "The title of the text in ${targetLanguage}",
+  "content": "The full learning text content in ${targetLanguage}. This should be 2-3 paragraphs of interesting, educational content suitable for language practice.",
+  "instructions": "Optional instructions or context for the student in their native language, or null if not needed"
+}
+
+The "content" field should contain ONLY the text to read/practice, without any titles, headers, or meta-commentary.`,
 
     userPrompt: (
       partialText: string | undefined,
@@ -90,8 +103,39 @@ Include 5-10 vocabulary items, 2-3 grammar points, and 2-3 verb conjugations rel
       targetLanguage: string
     ): string =>
       partialText
-        ? `Complete or expand this text for a ${level} level ${targetLanguage} exercise: "${partialText}"`
-        : `Generate a ${level} level text in ${targetLanguage} suitable for a language learning exercise (2-3 paragraphs). Choose an interesting topic like travel, culture, daily life, or current events.`,
+        ? `Complete or expand this text for a ${level} level ${targetLanguage} exercise: "${partialText}". Return the result as JSON with title, content, and instructions fields.`
+        : `Generate a ${level} level text in ${targetLanguage} suitable for a language learning exercise. Choose an interesting topic like travel, culture, daily life, technology, or current events. Return as JSON with title, content, and instructions fields.`,
+    
+    // Helper to parse the response
+    parseResponse: (response: string): { title: string; content: string; instructions: string | null } => {
+      try {
+        // Try to extract JSON from the response
+        const jsonMatch = response.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          return {
+            title: parsed.title || 'Untitled',
+            content: parsed.content || response,
+            instructions: parsed.instructions || null,
+          };
+        }
+      } catch {
+        // If parsing fails, try to extract title and content manually
+        const titleMatch = response.match(/^#+\s*(.+)$/m) || response.match(/^\*\*(.+)\*\*$/m);
+        const title = titleMatch ? titleMatch[1].trim() : 'Untitled';
+        
+        // Remove title and any introductory text
+        let content = response
+          .replace(/^[^.!?]*(?:here is|here's|voici|voilà)[^.!?]*[.!?]\s*/i, '')
+          .replace(/^#+\s*.+$/m, '')
+          .replace(/^\*\*.+\*\*$/m, '')
+          .trim();
+        
+        return { title, content, instructions: null };
+      }
+      
+      return { title: 'Untitled', content: response, instructions: null };
+    },
   },
 
   // ============================================
@@ -188,3 +232,52 @@ export type TextCompletionPrompts = typeof PromptTemplates.textCompletion;
 export type PronunciationPrompts = typeof PromptTemplates.pronunciation;
 export type ListeningPrompts = typeof PromptTemplates.listening;
 export type OfflinePrompts = typeof PromptTemplates.offline;
+
+// Structured response types
+export interface ExerciseTextResponse {
+  title: string;
+  content: string;
+  instructions: string | null;
+}
+
+export interface LessonResponse {
+  vocabulary: Array<{
+    term: string;
+    definition: string;
+    example: string;
+  }>;
+  grammar: Array<{
+    title: string;
+    explanation: string;
+    examples: string[];
+  }>;
+  conjugations: Array<{
+    verb: string;
+    tense: string;
+    conjugations: Record<string, string>;
+  }>;
+}
+
+export interface PronunciationResponse {
+  accuracy: number;
+  errors: Array<{
+    word: string;
+    expected: string;
+    actual: string;
+    suggestion: string;
+  }>;
+  overallScore: number;
+  suggestions: string[];
+}
+
+export interface ListeningResponse {
+  accuracy: number;
+  errors: Array<{
+    position: number;
+    expected: string;
+    actual: string;
+  }>;
+  spellingErrors: string[];
+  overallScore: number;
+  comprehensionLevel: 'excellent' | 'good' | 'fair' | 'needs-improvement';
+}
