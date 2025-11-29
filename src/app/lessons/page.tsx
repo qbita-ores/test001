@@ -27,6 +27,7 @@ export default function LessonsPage() {
   const { settings } = useAppStore();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingContent, setIsGeneratingContent] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [showCreator, setShowCreator] = useState(false);
 
@@ -43,13 +44,18 @@ export default function LessonsPage() {
       setIsLoading(true);
       try {
         const newLesson = await createLesson(title, context);
-        await generateContent(newLesson);
+        // Switch to viewer immediately with loading state
         setShowCreator(false);
+        setIsGeneratingContent(true);
+        
+        // Generate content (LessonViewer will show loading animation)
+        await generateContent(newLesson);
       } catch (error) {
         console.error('Error creating lesson:', error);
         alert('Error creating lesson: ' + (error instanceof Error ? error.message : 'Unknown error'));
       } finally {
         setIsLoading(false);
+        setIsGeneratingContent(false);
       }
     },
     [createLesson, generateContent]
@@ -102,7 +108,7 @@ export default function LessonsPage() {
             defaultLevel={settings.defaultLevel}
           />
         ) : (
-          <LessonViewer lesson={currentLesson} />
+          <LessonViewer lesson={currentLesson} isLoading={isGeneratingContent} />
         )}
       </div>
     </MainLayout>

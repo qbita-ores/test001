@@ -252,9 +252,10 @@ interface LessonViewerProps {
     };
   };
   onGenerateAudio?: (text: string) => Promise<void>;
+  isLoading?: boolean;
 }
 
-export function LessonViewer({ lesson, onGenerateAudio }: LessonViewerProps) {
+export function LessonViewer({ lesson, onGenerateAudio, isLoading = false }: LessonViewerProps) {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     vocabulary: true,
     grammar: true,
@@ -264,6 +265,13 @@ export function LessonViewer({ lesson, onGenerateAudio }: LessonViewerProps) {
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
+
+  const hasContent = lesson.content.vocabulary.length > 0 || 
+                     lesson.content.grammar.length > 0 || 
+                     lesson.content.conjugations.length > 0;
+
+  // Show loading state when isLoading is true OR when lesson has no content yet
+  const showLoading = isLoading || !hasContent;
 
   return (
     <div className="space-y-6">
@@ -275,49 +283,88 @@ export function LessonViewer({ lesson, onGenerateAudio }: LessonViewerProps) {
         </span>
       </div>
 
-      {/* Vocabulary Section */}
-      <Card>
-        <button
-          onClick={() => toggleSection('vocabulary')}
-          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50"
-        >
-          <h3 className="text-lg font-semibold flex items-center">
-            <span className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center mr-3 text-sm">
-              V
-            </span>
-            Vocabulary ({lesson.content.vocabulary.length})
-          </h3>
-          {expandedSections.vocabulary ? (
-            <ChevronUp className="h-5 w-5 text-gray-400" />
-          ) : (
-            <ChevronDown className="h-5 w-5 text-gray-400" />
-          )}
-        </button>
-        {expandedSections.vocabulary && (
-          <CardContent className="pt-0">
-            <div className="grid gap-4">
-              {lesson.content.vocabulary.map((item, index) => (
-                <div
-                  key={index}
-                  className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{item.term}</p>
-                      <p className="text-sm text-gray-600 mt-1">{item.definition}</p>
-                      {item.example && (
-                        <p className="text-sm text-blue-600 mt-2 italic">
-                          &quot;{item.example}&quot;
-                        </p>
-                      )}
-                    </div>
-                    {onGenerateAudio && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onGenerateAudio(item.term)}
-                        className="h-8 w-8"
-                      >
+      {showLoading ? (
+        /* Loading State */
+        <Card className="p-8">
+          <div className="flex flex-col items-center justify-center space-y-6">
+            <div className="relative">
+              <div className="w-20 h-20 border-4 border-blue-200 rounded-full animate-spin border-t-blue-600"></div>
+              <BookOpen className="absolute inset-0 m-auto h-8 w-8 text-blue-600" />
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-semibold text-gray-800">Generating Lesson Content</h3>
+              <p className="text-gray-500">
+                Our AI is creating vocabulary, grammar points, and conjugations for your lesson...
+              </p>
+            </div>
+            <div className="flex items-center space-x-2 text-sm text-gray-400">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>This may take a few moments</span>
+            </div>
+            
+            {/* Animated placeholder sections */}
+            <div className="w-full space-y-3 mt-4">
+              <div className="h-12 bg-gray-100 rounded-lg animate-pulse flex items-center px-4">
+                <div className="w-8 h-8 rounded-full bg-green-100 mr-3"></div>
+                <div className="h-4 bg-gray-200 rounded w-32"></div>
+              </div>
+              <div className="h-12 bg-gray-100 rounded-lg animate-pulse flex items-center px-4">
+                <div className="w-8 h-8 rounded-full bg-blue-100 mr-3"></div>
+                <div className="h-4 bg-gray-200 rounded w-28"></div>
+              </div>
+              <div className="h-12 bg-gray-100 rounded-lg animate-pulse flex items-center px-4">
+                <div className="w-8 h-8 rounded-full bg-purple-100 mr-3"></div>
+                <div className="h-4 bg-gray-200 rounded w-36"></div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        /* Content Sections */
+        <>
+          {/* Vocabulary Section */}
+          <Card>
+            <button
+              onClick={() => toggleSection('vocabulary')}
+              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50"
+            >
+              <h3 className="text-lg font-semibold flex items-center">
+                <span className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center mr-3 text-sm">
+                  V
+                </span>
+                Vocabulary ({lesson.content.vocabulary.length})
+              </h3>
+              {expandedSections.vocabulary ? (
+                <ChevronUp className="h-5 w-5 text-gray-400" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-gray-400" />
+              )}
+            </button>
+            {expandedSections.vocabulary && (
+              <CardContent className="pt-0">
+                <div className="grid gap-4">
+                  {lesson.content.vocabulary.map((item, index) => (
+                    <div
+                      key={index}
+                      className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900">{item.term}</p>
+                          <p className="text-sm text-gray-600 mt-1">{item.definition}</p>
+                          {item.example && (
+                            <p className="text-sm text-blue-600 mt-2 italic">
+                              &quot;{item.example}&quot;
+                            </p>
+                          )}
+                        </div>
+                        {onGenerateAudio && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onGenerateAudio(item.term)}
+                            className="h-8 w-8"
+                          >
                         <Volume2 className="h-4 w-4" />
                       </Button>
                     )}
@@ -411,6 +458,8 @@ export function LessonViewer({ lesson, onGenerateAudio }: LessonViewerProps) {
           </CardContent>
         )}
       </Card>
+        </>
+      )}
     </div>
   );
 }
