@@ -161,12 +161,15 @@ interface ListeningExerciseViewerProps {
   isLoading?: boolean;
 }
 
+type ListeningTabType = 'listen' | 'results';
+
 export function ListeningExerciseViewer({
   exercise,
   onGenerateAudio,
   onEvaluate,
   isLoading = false,
 }: ListeningExerciseViewerProps) {
+  const [activeTab, setActiveTab] = useState<ListeningTabType>('listen');
   const [transcription, setTranscription] = useState(exercise.userTranscription || '');
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
@@ -185,10 +188,17 @@ export function ListeningExerciseViewer({
     setIsEvaluating(true);
     try {
       await onEvaluate(transcription);
+      // Switch to results tab after evaluation
+      setActiveTab('results');
     } finally {
       setIsEvaluating(false);
     }
   }, [transcription, onEvaluate]);
+
+  const tabs: { id: ListeningTabType; label: string }[] = [
+    { id: 'listen', label: 'Listen & Write' },
+    { id: 'results', label: 'Evaluation Results' },
+  ];
 
   return (
     <div className="h-full flex flex-col">
@@ -200,91 +210,276 @@ export function ListeningExerciseViewer({
         </span>
       </div>
 
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="space-y-6 p-1">
-      {/* Audio Player */}
-      <Card className="rounded-t-none border-t-0">
-        <CardHeader>
-          <CardTitle>Listen to the Audio</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {exercise.audioUrl || exercise.audioBlob ? (
-            <AudioPlayer
-              audioUrl={exercise.audioUrl}
-              audioBlob={exercise.audioBlob}
-            />
-          ) : (
-            <div className="text-center py-4">
-              <p className="text-sm text-gray-600 mb-4">
-                Audio not yet generated for this exercise.
-              </p>
-              <Button
-                onClick={handleGenerateAudio}
-                disabled={isGeneratingAudio || isLoading}
-              >
-                {isGeneratingAudio ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Generating Audio...
-                  </>
-                ) : (
-                  <>
-                    <Headphones className="h-4 w-4 mr-2" />
-                    Generate Audio
-                  </>
+      {/* Tabs Content */}
+      <Card className="flex-1 flex flex-col overflow-hidden rounded-t-none border-t-0">
+        {/* Tab Headers - Fixed */}
+        <div className="flex-shrink-0 border-b border-gray-200 bg-white">
+          <div className="flex space-x-8 px-6">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  'py-4 text-sm font-medium border-b-2 transition-colors',
+                  activeTab === tab.id
+                    ? 'border-purple-600 text-gray-900'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 )}
-              </Button>
-            </div>
-          )}
-          <p className="text-sm text-gray-500 mt-3 text-center">
-            Listen as many times as you need, then write what you hear below.
-          </p>
-        </CardContent>
-      </Card>
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-      {/* Transcription Input */}
-      {!exercise.feedback && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Write What You Hear</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea
-              value={transcription}
-              onChange={(e) => setTranscription(e.target.value)}
-              placeholder="Type what you hear in the audio..."
-              rows={6}
-              disabled={isLoading}
-            />
-            <Button
-              onClick={handleEvaluate}
-              disabled={!transcription.trim() || isEvaluating || isLoading}
-              className="w-full"
-            >
-              {isEvaluating ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Evaluating...
-                </>
-              ) : (
-                'Submit for Evaluation'
-              )}
-            </Button>
+        {/* Tab Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto">
+          <CardContent className="p-6">
+            {/* Listen & Write Tab */}
+            {activeTab === 'listen' && (
+              <div className="space-y-6">
+                {/* Audio Player Section */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3">Audio</h4>
+                  {exercise.audioUrl || exercise.audioBlob ? (
+                    <AudioPlayer
+                      audioUrl={exercise.audioUrl}
+                      audioBlob={exercise.audioBlob}
+                    />
+                  ) : (
+                    <div className="text-center py-6 bg-gray-50 rounded-lg">
+                      <Headphones className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                      <p className="text-sm text-gray-600 mb-4">
+                        Audio not yet generated for this exercise.
+                      </p>
+                      <Button
+                        onClick={handleGenerateAudio}
+                        disabled={isGeneratingAudio || isLoading}
+                      >
+                        {isGeneratingAudio ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            Generating Audio...
+                          </>
+                        ) : (
+                          <>
+                            <Headphones className="h-4 w-4 mr-2" />
+                            Generate Audio
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                  <p className="text-sm text-gray-500 mt-3 text-center">
+                    Listen as many times as you need, then write what you hear below.
+                  </p>
+                </div>
+
+                {/* Transcription Input */}
+                {!exercise.feedback && (
+                  <div className="space-y-4 pt-4 border-t border-gray-100">
+                    <h4 className="font-semibold text-gray-900">Write What You Hear</h4>
+                    <Textarea
+                      value={transcription}
+                      onChange={(e) => setTranscription(e.target.value)}
+                      placeholder="Type what you hear in the audio..."
+                      rows={6}
+                      disabled={isLoading}
+                    />
+                    <Button
+                      onClick={handleEvaluate}
+                      disabled={!transcription.trim() || isEvaluating || isLoading}
+                      className="w-full"
+                    >
+                      {isEvaluating ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Evaluating...
+                        </>
+                      ) : (
+                        'Submit for Evaluation'
+                      )}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Show hint to see results if feedback exists */}
+                {exercise.feedback && (
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 flex items-center justify-between">
+                    <p className="text-purple-700">
+                      Your transcription has been evaluated! Check the results tab.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setActiveTab('results')}
+                      className="border-purple-600 text-purple-600 hover:bg-purple-50"
+                    >
+                      View Results
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Evaluation Results Tab */}
+            {activeTab === 'results' && (
+              <div className="space-y-6">
+                {exercise.feedback ? (
+                  <ListeningFeedbackContent
+                    feedback={exercise.feedback}
+                    userTranscription={exercise.userTranscription}
+                    originalText={exercise.originalText}
+                  />
+                ) : (
+                  <div className="text-center py-12">
+                    <Headphones className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">No evaluation results yet.</p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Listen to the audio and submit your transcription.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setActiveTab('listen')}
+                      className="mt-4"
+                    >
+                      Go to Listen
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
-        </Card>
-      )}
+        </div>
+      </Card>
+    </div>
+  );
+}
 
-      {/* Feedback Section */}
-      {exercise.feedback && (
-        <ListeningFeedbackCard
-          feedback={exercise.feedback}
-          userTranscription={exercise.userTranscription}
-          originalText={exercise.originalText}
+interface ListeningFeedbackContentProps {
+  feedback: ListeningFeedback;
+  userTranscription?: string;
+  originalText: string;
+}
+
+function ListeningFeedbackContent({
+  feedback,
+  userTranscription,
+  originalText,
+}: ListeningFeedbackContentProps) {
+  const scoreColor =
+    feedback.overallScore >= 80
+      ? 'text-green-600'
+      : feedback.overallScore >= 60
+      ? 'text-yellow-600'
+      : 'text-red-600';
+
+  const comprehensionColors: Record<string, string> = {
+    excellent: 'bg-green-100 text-green-700',
+    good: 'bg-blue-100 text-blue-700',
+    fair: 'bg-yellow-100 text-yellow-700',
+    'needs-improvement': 'bg-red-100 text-red-700',
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Score Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">Your Score</h3>
+          <span
+            className={cn(
+              'inline-block mt-1 px-3 py-1 rounded-full text-sm font-medium',
+              comprehensionColors[feedback.comprehensionLevel]
+            )}
+          >
+            {feedback.comprehensionLevel.replace('-', ' ')}
+          </span>
+        </div>
+        <span className={cn('text-4xl font-bold', scoreColor)}>
+          {feedback.overallScore}%
+        </span>
+      </div>
+
+      {/* Score Bar */}
+      <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+        <div
+          className={cn(
+            'h-full transition-all duration-500',
+            feedback.overallScore >= 80
+              ? 'bg-green-500'
+              : feedback.overallScore >= 60
+              ? 'bg-yellow-500'
+              : 'bg-red-500'
+          )}
+          style={{ width: `${feedback.overallScore}%` }}
         />
-      )}
+      </div>
+
+      {/* Comparison */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+        <div>
+          <h4 className="text-sm font-medium text-gray-700 mb-2">Original Text</h4>
+          <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-4">
+            {originalText}
+          </p>
+        </div>
+        <div>
+          <h4 className="text-sm font-medium text-gray-700 mb-2">Your Transcription</h4>
+          <p className="text-sm text-gray-600 bg-blue-50 rounded-lg p-4">
+            {userTranscription}
+          </p>
         </div>
       </div>
+
+      {/* Errors */}
+      {feedback.errors.length > 0 && (
+        <div className="pt-4 border-t border-gray-100">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Errors Found</h4>
+          <div className="space-y-2">
+            {feedback.errors.map((error, index) => (
+              <div
+                key={index}
+                className="flex items-center space-x-3 bg-red-50 rounded-lg p-3"
+              >
+                <XCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                <p className="text-sm">
+                  Expected &quot;<span className="font-medium">{error.expected}</span>&quot;,
+                  wrote &quot;<span className="font-medium">{error.actual}</span>&quot;
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Spelling Errors */}
+      {feedback.spellingErrors.length > 0 && (
+        <div className="pt-4 border-t border-gray-100">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Spelling Errors</h4>
+          <div className="flex flex-wrap gap-2">
+            {feedback.spellingErrors.map((word, index) => (
+              <span
+                key={index}
+                className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm"
+              >
+                {word}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Perfect Score Message */}
+      {feedback.errors.length === 0 && feedback.spellingErrors.length === 0 && (
+        <div className="flex items-center space-x-3 bg-green-50 rounded-lg p-4">
+          <CheckCircle className="h-6 w-6 text-green-500" />
+          <p className="text-green-700 font-medium">
+            Excellent work! Your transcription is accurate.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

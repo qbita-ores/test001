@@ -162,11 +162,14 @@ interface SpeakingExerciseViewerProps {
   isLoading?: boolean;
 }
 
+type SpeakingTabType = 'text' | 'results';
+
 export function SpeakingExerciseViewer({
   exercise,
   onEvaluate,
   isLoading = false,
 }: SpeakingExerciseViewerProps) {
+  const [activeTab, setActiveTab] = useState<SpeakingTabType>('text');
   const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
 
@@ -179,10 +182,17 @@ export function SpeakingExerciseViewer({
     setIsEvaluating(true);
     try {
       await onEvaluate(recordingBlob);
+      // Switch to results tab after evaluation
+      setActiveTab('results');
     } finally {
       setIsEvaluating(false);
     }
   }, [recordingBlob, onEvaluate]);
+
+  const tabs: { id: SpeakingTabType; label: string }[] = [
+    { id: 'text', label: 'Text to Read' },
+    { id: 'results', label: 'Evaluation Results' },
+  ];
 
   return (
     <div className="h-full flex flex-col">
@@ -194,62 +204,230 @@ export function SpeakingExerciseViewer({
         </span>
       </div>
 
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="space-y-6 p-1">
-      {/* Text to Read */}
-      <Card className="rounded-t-none border-t-0">
-        <CardHeader>
-          <CardTitle>Text to Read</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-lg leading-relaxed text-gray-800 bg-gray-50 rounded-lg p-4">
-            {exercise.originalText}
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Recording Section */}
-      {!exercise.feedback && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Recording</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-gray-600">
-              Read the text above aloud. When you&apos;re ready, click the button to start recording.
-            </p>
-            <AudioRecorder onRecordingComplete={handleRecordingComplete} />
-            {recordingBlob && (
-              <Button
-                onClick={handleEvaluate}
-                disabled={isEvaluating || isLoading}
-                className="w-full"
-              >
-                {isEvaluating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Evaluating...
-                  </>
-                ) : (
-                  'Submit for Evaluation'
+      {/* Tabs Content */}
+      <Card className="flex-1 flex flex-col overflow-hidden rounded-t-none border-t-0">
+        {/* Tab Headers - Fixed */}
+        <div className="flex-shrink-0 border-b border-gray-200 bg-white">
+          <div className="flex space-x-8 px-6">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  'py-4 text-sm font-medium border-b-2 transition-colors',
+                  activeTab === tab.id
+                    ? 'border-green-600 text-gray-900'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 )}
-              </Button>
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Tab Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto">
+          <CardContent className="p-6">
+            {/* Text to Read Tab */}
+            {activeTab === 'text' && (
+              <div className="space-y-6">
+                {/* Text Display */}
+                <div>
+                  <p className="text-lg leading-relaxed text-gray-800 bg-gray-50 rounded-lg p-6">
+                    {exercise.originalText}
+                  </p>
+                </div>
+
+                {/* Recording Section */}
+                {!exercise.feedback && (
+                  <div className="space-y-4 pt-4 border-t border-gray-100">
+                    <h4 className="font-semibold text-gray-900">Your Recording</h4>
+                    <p className="text-sm text-gray-600">
+                      Read the text above aloud. When you&apos;re ready, click the button to start recording.
+                    </p>
+                    <AudioRecorder onRecordingComplete={handleRecordingComplete} />
+                    {recordingBlob && (
+                      <Button
+                        onClick={handleEvaluate}
+                        disabled={isEvaluating || isLoading}
+                        className="w-full"
+                      >
+                        {isEvaluating ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            Evaluating...
+                          </>
+                        ) : (
+                          'Submit for Evaluation'
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                {/* Show hint to see results if feedback exists */}
+                {exercise.feedback && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center justify-between">
+                    <p className="text-green-700">
+                      Your recording has been evaluated! Check the results tab.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setActiveTab('results')}
+                      className="border-green-600 text-green-600 hover:bg-green-50"
+                    >
+                      View Results
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Evaluation Results Tab */}
+            {activeTab === 'results' && (
+              <div className="space-y-6">
+                {exercise.feedback ? (
+                  <FeedbackContent
+                    feedback={exercise.feedback}
+                    transcription={exercise.transcription}
+                    originalText={exercise.originalText}
+                  />
+                ) : (
+                  <div className="text-center py-12">
+                    <Mic className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">No evaluation results yet.</p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Record your reading and submit for evaluation.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setActiveTab('text')}
+                      className="mt-4"
+                    >
+                      Go to Text
+                    </Button>
+                  </div>
+                )}
+              </div>
             )}
           </CardContent>
-        </Card>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+interface FeedbackContentProps {
+  feedback: PronunciationFeedback;
+  transcription?: string;
+  originalText: string;
+}
+
+function FeedbackContent({ feedback, transcription, originalText }: FeedbackContentProps) {
+  const scoreColor =
+    feedback.overallScore >= 80
+      ? 'text-green-600'
+      : feedback.overallScore >= 60
+      ? 'text-yellow-600'
+      : 'text-red-600';
+
+  return (
+    <div className="space-y-6">
+      {/* Score Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900">Your Score</h3>
+        <span className={cn('text-4xl font-bold', scoreColor)}>
+          {feedback.overallScore}%
+        </span>
+      </div>
+
+      {/* Score Bar */}
+      <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+        <div
+          className={cn(
+            'h-full transition-all duration-500',
+            feedback.overallScore >= 80
+              ? 'bg-green-500'
+              : feedback.overallScore >= 60
+              ? 'bg-yellow-500'
+              : 'bg-red-500'
+          )}
+          style={{ width: `${feedback.overallScore}%` }}
+        />
+      </div>
+
+      {/* Comparison */}
+      {transcription && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Original Text</h4>
+            <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-4">
+              {originalText}
+            </p>
+          </div>
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Your Reading</h4>
+            <p className="text-sm text-gray-600 bg-blue-50 rounded-lg p-4">
+              {transcription}
+            </p>
+          </div>
+        </div>
       )}
 
-      {/* Feedback Section */}
-      {exercise.feedback && (
-        <FeedbackCard
-          feedback={exercise.feedback}
-          transcription={exercise.transcription}
-          originalText={exercise.originalText}
-        />
-      )}
+      {/* Errors */}
+      {feedback.errors.length > 0 && (
+        <div className="pt-4 border-t border-gray-100">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Pronunciation Errors</h4>
+          <div className="space-y-2">
+            {feedback.errors.map((error, index) => (
+              <div
+                key={index}
+                className="flex items-start space-x-3 bg-red-50 rounded-lg p-3"
+              >
+                <XCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm">
+                    <span className="font-medium">{error.word}</span>: expected &quot;
+                    {error.expected}&quot;, heard &quot;{error.actual}&quot;
+                  </p>
+                  <p className="text-xs text-gray-600 mt-1">{error.suggestion}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Suggestions */}
+      {feedback.suggestions.length > 0 && (
+        <div className="pt-4 border-t border-gray-100">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Suggestions</h4>
+          <ul className="space-y-2">
+            {feedback.suggestions.map((suggestion, index) => (
+              <li
+                key={index}
+                className="flex items-start space-x-3 bg-blue-50 rounded-lg p-3"
+              >
+                <CheckCircle className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-gray-700">{suggestion}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Perfect Score Message */}
+      {feedback.errors.length === 0 && feedback.overallScore >= 90 && (
+        <div className="flex items-center space-x-3 bg-green-50 rounded-lg p-4">
+          <CheckCircle className="h-6 w-6 text-green-500" />
+          <p className="text-green-700 font-medium">
+            Excellent pronunciation! Keep up the great work.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
