@@ -8,6 +8,7 @@ import {
   PronunciationEvaluationRequest,
   ListeningEvaluationRequest,
 } from '@/domain/ports/TextProviderPort';
+import { PromptTemplates } from '@/domain/prompts';
 
 export class GeminiTextAdapter implements ITextProviderPort {
   private apiKey: string;
@@ -21,7 +22,7 @@ export class GeminiTextAdapter implements ITextProviderPort {
 
   private async makeRequest(prompt: string, systemInstruction?: string): Promise<string> {
     const url = `${this.baseUrl}/models/${this.model}:generateContent?key=${this.apiKey}`;
-    
+
     const body: Record<string, unknown> = {
       contents: [
         {
@@ -55,10 +56,8 @@ export class GeminiTextAdapter implements ITextProviderPort {
     }
 
     const data = await response.json();
-    
-    // Vérifier que la réponse contient des candidates valides
+
     if (!data.candidates || data.candidates.length === 0) {
-      // Vérifier si le contenu a été bloqué
       if (data.promptFeedback?.blockReason) {
         throw new Error(`Content blocked: ${data.promptFeedback.blockReason}`);
       }
@@ -66,8 +65,7 @@ export class GeminiTextAdapter implements ITextProviderPort {
     }
 
     const candidate = data.candidates[0];
-    
-    // Vérifier si le candidate a été bloqué
+
     if (candidate.finishReason === 'SAFETY') {
       throw new Error('Response blocked due to safety settings');
     }
@@ -82,7 +80,7 @@ export class GeminiTextAdapter implements ITextProviderPort {
   async generateResponse(request: TextGenerationRequest): Promise<string> {
     const systemMessage = request.messages.find((m) => m.role === 'system');
     const conversationMessages = request.messages.filter((m) => m.role !== 'system');
-    
+
     const prompt = conversationMessages
       .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
       .join('\n');
@@ -92,19 +90,21 @@ export class GeminiTextAdapter implements ITextProviderPort {
 
   async translate(request: TranslationRequest): Promise<string> {
     return this.makeRequest(
-      request.text,
-      `You are a professional translator. Translate the following text from ${request.sourceLanguage} to ${request.targetLanguage}. Only provide the translation, no explanations.`
+      PromptTemplates.translation.userPrompt(request.text),
+      PromptTemplates.translation.systemPrompt(
+        request.sourceLanguage,
+        request.targetLanguage
+      )
     );
   }
 
   async suggestResponses(request: ResponseSuggestionRequest): Promise<string[]> {
-    const conversationText = request.conversationHistory
-      .map((m) => `${m.role}: ${m.content}`)
-      .join('\n');
-
     const response = await this.makeRequest(
-      conversationText,
-      `You are a language learning assistant. Based on the conversation, suggest 3 possible responses the student could use to continue the conversation in ${request.targetLanguage}. The student's native language is ${request.nativeLanguage}. Return the suggestions as a JSON array of strings.`
+      PromptTemplates.suggestions.userPrompt(request.conversationHistory),
+      PromptTemplates.suggestions.systemPrompt(
+        request.targetLanguage,
+        request.nativeLanguage
+      )
     );
 
     try {
@@ -116,44 +116,40 @@ export class GeminiTextAdapter implements ITextProviderPort {
   }
 
   async generateLesson(request: LessonGenerationRequest): Promise<string> {
-    const contextInfo = request.conversationContext
-      ? `\n\nConversation context:\n${request.conversationContext.map((m) => `${m.role}: ${m.content}`).join('\n')}`
-      : '';
-
     return this.makeRequest(
-      `Create a lesson about: ${request.context}${contextInfo}`,
-      `You are an expert language teacher creating a ${request.level} level lesson for learning ${request.targetLanguage}. The student's native language is ${request.nativeLanguage}.
-        
-Create a structured lesson with the following JSON format:
-{
-  "vocabulary": [
-    {"term": "word", "definition": "definition in native language", "example": "example sentence"}
-  ],
-  "grammar": [
-    {"title": "Grammar Point", "explanation": "explanation", "examples": ["example 1", "example 2"]}
-  ],
-  "conjugations": [
-    {"verb": "verb", "tense": "tense name", "conjugations": {"je/I": "conjugation", "tu/you": "conjugation", ...}}
-  ]
-}`
+      PromptTemplates.lesson.userPrompt(
+        request.context,
+        request.conversationContext
+      ),
+      PromptTemplates.lesson.systemPrompt(
+        request.level,
+        request.targetLanguage,
+        request.nativeLanguage
+      )
     );
   }
 
   async generateExerciseText(request: TextCompletionRequest): Promise<string> {
-    const prompt = request.partialText
-      ? `Complete or expand this text for a ${request.level} level ${request.targetLanguage} exercise: "${request.partialText}"`
-      : `Generate a ${request.level} level text in ${request.targetLanguage} suitable for a language learning exercise (2-3 paragraphs).`;
-
     return this.makeRequest(
-      prompt,
-      `You are a language learning content creator. Create engaging content in ${request.targetLanguage} appropriate for ${request.level} level students.`
+      PromptTemplates.exerciseText.userPrompt(
+        request.partialText,
+        request.level,
+        request.targetLanguage
+      ),
+      PromptTemplates.exerciseText.systemPrompt(
+        request.targetLanguage,
+        request.level
+      )
     );
   }
 
   async completeText(request: TextCompletionRequest): Promise<string> {
     return this.makeRequest(
-      request.partialText || 'Generate a topic suggestion for language learning.',
-      `You are helping a language student complete their text. Continue or expand the text naturally in ${request.targetLanguage} at ${request.level} level.`
+      PromptTemplates.textCompletion.userPrompt(request.partialText),
+      PromptTemplates.textCompletion.systemPrompt(
+        request.targetLanguage,
+        request.level
+      )
     );
   }
 
@@ -161,40 +157,27 @@ Create a structured lesson with the following JSON format:
     request: PronunciationEvaluationRequest
   ): Promise<string> {
     return this.makeRequest(
-      `Original text: "${request.originalText}"\nTranscribed speech: "${request.transcribedText}"`,
-      `You are a pronunciation evaluation expert for ${request.targetLanguage}. Compare the original text with what the student said and provide detailed feedback.
-        
-Return JSON format:
-{
-  "accuracy": 0-100,
-  "errors": [{"word": "word", "expected": "expected", "actual": "what was said", "suggestion": "how to improve"}],
-  "overallScore": 0-100,
-  "suggestions": ["suggestion 1", "suggestion 2"]
-}`
+      PromptTemplates.pronunciation.userPrompt(
+        request.originalText,
+        request.transcribedText
+      ),
+      PromptTemplates.pronunciation.systemPrompt(request.targetLanguage)
     );
   }
 
   async evaluateListening(request: ListeningEvaluationRequest): Promise<string> {
     return this.makeRequest(
-      `Original text: "${request.originalText}"\nStudent's transcription: "${request.userTranscription}"`,
-      `You are a listening comprehension evaluator for ${request.targetLanguage}. Compare what the student wrote with the original text.
-        
-Return JSON format:
-{
-  "accuracy": 0-100,
-  "errors": [{"position": 0, "expected": "expected word", "actual": "what was written"}],
-  "spellingErrors": ["word1", "word2"],
-  "overallScore": 0-100,
-  "comprehensionLevel": "excellent|good|fair|needs-improvement"
-}`
+      PromptTemplates.listening.userPrompt(
+        request.originalText,
+        request.userTranscription
+      ),
+      PromptTemplates.listening.systemPrompt(request.targetLanguage)
     );
   }
 
   async validateApiKey(apiKey: string): Promise<boolean> {
     try {
-      const response = await fetch(
-        `${this.baseUrl}/models?key=${apiKey}`
-      );
+      const response = await fetch(`${this.baseUrl}/models?key=${apiKey}`);
       return response.ok;
     } catch {
       return false;
@@ -203,17 +186,17 @@ Return JSON format:
 
   async getAvailableModels(apiKey: string): Promise<string[]> {
     try {
-      const response = await fetch(
-        `${this.baseUrl}/models?key=${apiKey}`
-      );
+      const response = await fetch(`${this.baseUrl}/models?key=${apiKey}`);
 
       if (!response.ok) return [];
 
       const data = await response.json();
-      return data.models
-        ?.filter((m: { name: string }) => m.name.includes('gemini'))
-        .map((m: { name: string }) => m.name.replace('models/', ''))
-        .sort() || [];
+      return (
+        data.models
+          ?.filter((m: { name: string }) => m.name.includes('gemini'))
+          .map((m: { name: string }) => m.name.replace('models/', ''))
+          .sort() || []
+      );
     } catch {
       return [];
     }

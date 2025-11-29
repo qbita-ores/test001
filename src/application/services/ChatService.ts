@@ -7,6 +7,7 @@ import {
   updateMessageInChat,
 } from '../../domain/entities/Chat';
 import { ITextProviderPort, IStoragePort, IAudioProviderPort } from '../../domain/ports';
+import { PromptTemplates } from '../../domain/prompts';
 
 export class ChatService {
   constructor(
@@ -30,8 +31,11 @@ export class ChatService {
     const userMessage = createMessage('user', userContent);
     let updatedChat = addMessageToChat(chat, userMessage);
 
-    // Generate AI response
-    const systemPrompt = `You are a helpful language learning assistant. The user is learning ${chat.targetLanguage}. Their native language is ${chat.nativeLanguage}. Respond in ${chat.targetLanguage} to help them practice. Keep responses conversational and educational.`;
+    // Generate AI response using centralized prompt
+    const systemPrompt = PromptTemplates.chat.systemPrompt(
+      chat.targetLanguage,
+      chat.nativeLanguage
+    );
 
     const messages = [
       { role: 'system' as const, content: systemPrompt },

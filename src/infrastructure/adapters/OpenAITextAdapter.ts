@@ -8,6 +8,7 @@ import {
   PronunciationEvaluationRequest,
   ListeningEvaluationRequest,
 } from '@/domain/ports/TextProviderPort';
+import { PromptTemplates } from '@/domain/prompts';
 
 export class OpenAITextAdapter implements ITextProviderPort {
   private apiKey: string;
@@ -42,8 +43,7 @@ export class OpenAITextAdapter implements ITextProviderPort {
     }
 
     const data = await response.json();
-    
-    // Vérifier que la réponse contient des choices valides
+
     if (!data.choices || data.choices.length === 0) {
       throw new Error('No response generated from OpenAI API');
     }
@@ -64,81 +64,77 @@ export class OpenAITextAdapter implements ITextProviderPort {
     return this.makeRequest([
       {
         role: 'system',
-        content: `You are a professional translator. Translate the following text from ${request.sourceLanguage} to ${request.targetLanguage}. Only provide the translation, no explanations.`,
+        content: PromptTemplates.translation.systemPrompt(
+          request.sourceLanguage,
+          request.targetLanguage
+        ),
       },
       {
         role: 'user',
-        content: request.text,
+        content: PromptTemplates.translation.userPrompt(request.text),
       },
     ]);
   }
 
   async suggestResponses(request: ResponseSuggestionRequest): Promise<string[]> {
-    const conversationText = request.conversationHistory
-      .map((m) => `${m.role}: ${m.content}`)
-      .join('\n');
-
     const response = await this.makeRequest([
       {
         role: 'system',
-        content: `You are a language learning assistant. Based on the conversation, suggest 3 possible responses the student could use to continue the conversation in ${request.targetLanguage}. The student's native language is ${request.nativeLanguage}. Return the suggestions as a JSON array of strings.`,
+        content: PromptTemplates.suggestions.systemPrompt(
+          request.targetLanguage,
+          request.nativeLanguage
+        ),
       },
       {
         role: 'user',
-        content: conversationText,
+        content: PromptTemplates.suggestions.userPrompt(request.conversationHistory),
       },
     ]);
 
     try {
-      return JSON.parse(response);
+      const jsonMatch = response.match(/\[[\s\S]*\]/);
+      return jsonMatch ? JSON.parse(jsonMatch[0]) : [response];
     } catch {
       return [response];
     }
   }
 
   async generateLesson(request: LessonGenerationRequest): Promise<string> {
-    const contextInfo = request.conversationContext
-      ? `\n\nConversation context:\n${request.conversationContext.map((m) => `${m.role}: ${m.content}`).join('\n')}`
-      : '';
-
     return this.makeRequest([
       {
         role: 'system',
-        content: `You are an expert language teacher creating a ${request.level} level lesson for learning ${request.targetLanguage}. The student's native language is ${request.nativeLanguage}.
-        
-Create a structured lesson with the following JSON format:
-{
-  "vocabulary": [
-    {"term": "word", "definition": "definition in native language", "example": "example sentence"}
-  ],
-  "grammar": [
-    {"title": "Grammar Point", "explanation": "explanation", "examples": ["example 1", "example 2"]}
-  ],
-  "conjugations": [
-    {"verb": "verb", "tense": "tense name", "conjugations": {"je/I": "conjugation", "tu/you": "conjugation", ...}}
-  ]
-}`,
+        content: PromptTemplates.lesson.systemPrompt(
+          request.level,
+          request.targetLanguage,
+          request.nativeLanguage
+        ),
       },
       {
         role: 'user',
-        content: `Create a lesson about: ${request.context}${contextInfo}`,
+        content: PromptTemplates.lesson.userPrompt(
+          request.context,
+          request.conversationContext
+        ),
       },
     ]);
   }
 
   async generateExerciseText(request: TextCompletionRequest): Promise<string> {
-    const prompt = request.partialText
-      ? `Complete or expand this text for a ${request.level} level ${request.targetLanguage} exercise: "${request.partialText}"`
-      : `Generate a ${request.level} level text in ${request.targetLanguage} suitable for a language learning exercise (2-3 paragraphs).`;
-
     return this.makeRequest([
       {
         role: 'system',
-        content: `You are a language learning content creator. Create engaging content in ${request.targetLanguage} appropriate for ${request.level} level students.`,
+        content: PromptTemplates.exerciseText.systemPrompt(
+          request.targetLanguage,
+          request.level
+        ),
       },
       {
         role: 'user',
-        content: prompt,
+        content: PromptTemplates.exerciseText.userPrompt(
+          request.partialText,
+          request.level,
+          request.targetLanguage
+        ),
       },
     ]);
   }
@@ -147,11 +143,14 @@ Create a structured lesson with the following JSON format:
     return this.makeRequest([
       {
         role: 'system',
-        content: `You are helping a language student complete their text. Continue or expand the text naturally in ${request.targetLanguage} at ${request.level} level.`,
+        content: PromptTemplates.textCompletion.systemPrompt(
+          request.targetLanguage,
+          request.level
+        ),
       },
       {
         role: 'user',
-        content: request.partialText || 'Generate a topic suggestion for language learning.',
+        content: PromptTemplates.textCompletion.userPrompt(request.partialText),
       },
     ]);
   }
@@ -162,19 +161,14 @@ Create a structured lesson with the following JSON format:
     return this.makeRequest([
       {
         role: 'system',
-        content: `You are a pronunciation evaluation expert for ${request.targetLanguage}. Compare the original text with what the student said and provide detailed feedback.
-        
-Return JSON format:
-{
-  "accuracy": 0-100,
-  "errors": [{"word": "word", "expected": "expected", "actual": "what was said", "suggestion": "how to improve"}],
-  "overallScore": 0-100,
-  "suggestions": ["suggestion 1", "suggestion 2"]
-}`,
+        content: PromptTemplates.pronunciation.systemPrompt(request.targetLanguage),
       },
       {
         role: 'user',
-        content: `Original text: "${request.originalText}"\nTranscribed speech: "${request.transcribedText}"`,
+        content: PromptTemplates.pronunciation.userPrompt(
+          request.originalText,
+          request.transcribedText
+        ),
       },
     ]);
   }
@@ -183,20 +177,14 @@ Return JSON format:
     return this.makeRequest([
       {
         role: 'system',
-        content: `You are a listening comprehension evaluator for ${request.targetLanguage}. Compare what the student wrote with the original text.
-        
-Return JSON format:
-{
-  "accuracy": 0-100,
-  "errors": [{"position": 0, "expected": "expected word", "actual": "what was written"}],
-  "spellingErrors": ["word1", "word2"],
-  "overallScore": 0-100,
-  "comprehensionLevel": "excellent|good|fair|needs-improvement"
-}`,
+        content: PromptTemplates.listening.systemPrompt(request.targetLanguage),
       },
       {
         role: 'user',
-        content: `Original text: "${request.originalText}"\nStudent's transcription: "${request.userTranscription}"`,
+        content: PromptTemplates.listening.userPrompt(
+          request.originalText,
+          request.userTranscription
+        ),
       },
     ]);
   }
