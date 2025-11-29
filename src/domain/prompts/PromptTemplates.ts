@@ -108,33 +108,58 @@ The "content" field should contain ONLY the text to read/practice, without any t
     
     // Helper to parse the response
     parseResponse: (response: string): { title: string; content: string; instructions: string | null } => {
+      // Clean up the response - remove markdown code blocks if present
+      let cleanedResponse = response.trim();
+      
+      // Remove ```json ... ``` or ``` ... ``` wrappers
+      const codeBlockMatch = cleanedResponse.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (codeBlockMatch) {
+        cleanedResponse = codeBlockMatch[1].trim();
+      }
+
+      // First, try to parse the cleaned response as JSON
       try {
-        // Try to extract JSON from the response
-        const jsonMatch = response.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
+        const parsed = JSON.parse(cleanedResponse);
+        if (parsed.title && parsed.content) {
           return {
-            title: parsed.title || 'Untitled',
-            content: parsed.content || response,
-            instructions: parsed.instructions || null,
+            title: String(parsed.title).trim(),
+            content: String(parsed.content).trim(),
+            instructions: parsed.instructions ? String(parsed.instructions).trim() : null,
           };
         }
       } catch {
-        // If parsing fails, try to extract title and content manually
-        const titleMatch = response.match(/^#+\s*(.+)$/m) || response.match(/^\*\*(.+)\*\*$/m);
-        const title = titleMatch ? titleMatch[1].trim() : 'Untitled';
-        
-        // Remove title and any introductory text
-        let content = response
-          .replace(/^[^.!?]*(?:here is|here's|voici|voilà)[^.!?]*[.!?]\s*/i, '')
-          .replace(/^#+\s*.+$/m, '')
-          .replace(/^\*\*.+\*\*$/m, '')
-          .trim();
-        
-        return { title, content, instructions: null };
+        // Not valid JSON, continue to try extracting JSON from the response
       }
+
+      // Try to extract JSON object from the response (in case there's extra text)
+      try {
+        const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.title && parsed.content) {
+            return {
+              title: String(parsed.title).trim(),
+              content: String(parsed.content).trim(),
+              instructions: parsed.instructions ? String(parsed.instructions).trim() : null,
+            };
+          }
+        }
+      } catch {
+        // JSON extraction failed, continue to manual extraction
+      }
+
+      // Manual extraction fallback: try to extract title and content from markdown-like format
+      const titleMatch = response.match(/^#+\s*(.+)$/m) || response.match(/^\*\*(.+)\*\*$/m);
+      const title = titleMatch ? titleMatch[1].trim() : 'Untitled';
       
-      return { title: 'Untitled', content: response, instructions: null };
+      // Remove title and any introductory text
+      const content = response
+        .replace(/^[^.!?]*(?:here is|here's|voici|voilà)[^.!?]*[.!?]\s*/i, '')
+        .replace(/^#+\s*.+$/m, '')
+        .replace(/^\*\*.+\*\*$/m, '')
+        .trim();
+      
+      return { title, content, instructions: null };
     },
   },
 

@@ -42,12 +42,18 @@ export function SpeakingExerciseCreator({
     setIsGenerating(true);
     try {
       const response = await onGenerateText(context);
+      console.log('Generated text response:', response);
+      console.log('Type of response:', typeof response);
+      console.log('Response title:', response.title);
+      console.log('Response content:', response.content?.substring(0, 100));
       // Update title only if empty
       if (!title.trim()) {
         setTitle(response.title);
       }
       setContext(response.content);
       setInstructions(response.instructions);
+    } catch (error) {
+      console.error('Error generating text:', error);
     } finally {
       setIsGenerating(false);
     }
