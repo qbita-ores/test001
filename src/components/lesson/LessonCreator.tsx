@@ -85,7 +85,26 @@ export function LessonCreator({
   }, [title, context, level, useChat, onCreateLesson]);
 
   return (
-    <Card className="w-full">
+    <Card className="w-full relative">
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-lg">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-blue-200 rounded-full animate-spin border-t-blue-600"></div>
+              <BookOpen className="absolute inset-0 m-auto h-6 w-6 text-blue-600" />
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-semibold text-gray-800">Generating Lesson Content</p>
+              <p className="text-sm text-gray-500 mt-1">
+                Creating vocabulary, grammar points, and conjugations...
+              </p>
+              <p className="text-xs text-gray-400 mt-2">This may take a few seconds</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <BookOpen className="h-5 w-5 text-blue-600" />

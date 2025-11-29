@@ -42,13 +42,8 @@ export default function LessonsPage() {
     async (title: string, context: string, level: LessonLevel) => {
       setIsLoading(true);
       try {
-        console.log('Creating lesson with title:', title);
         const newLesson = await createLesson(title, context);
-        console.log('Lesson created:', newLesson.id);
-        console.log('Generating content...');
-        const lessonWithContent = await generateContent(newLesson);
-        console.log('Content generated:', lessonWithContent);
-        console.log('Vocabulary count:', lessonWithContent?.content?.vocabulary?.length);
+        await generateContent(newLesson);
         setShowCreator(false);
       } catch (error) {
         console.error('Error creating lesson:', error);

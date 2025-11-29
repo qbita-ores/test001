@@ -82,12 +82,8 @@ Return ONLY the JSON object, nothing else.`,
     
     // Helper to parse the lesson response
     parseResponse: (response: string): { vocabulary: Array<{ term: string; definition: string; example: string }>; grammar: Array<{ title: string; explanation: string; examples: string[] }>; conjugations: Array<{ verb: string; tense: string; conjugations: Record<string, string> }> } => {
-      console.log('=== PARSER START ===');
-      console.log('Original response length:', response?.length);
-      
       // Clean up the response - remove markdown code blocks if present
       let cleanedResponse = response.trim();
-      console.log('After trim, starts with:', cleanedResponse.substring(0, 50));
       
       // Method 1: Remove ```json at start and ``` at end
       if (cleanedResponse.startsWith('```')) {
@@ -101,46 +97,36 @@ Return ONLY the JSON object, nothing else.`,
           cleanedResponse = cleanedResponse.substring(0, cleanedResponse.length - 3);
         }
         cleanedResponse = cleanedResponse.trim();
-        console.log('After removing code block markers, starts with:', cleanedResponse.substring(0, 100));
       }
-      
-      console.log('Cleaned response starts with:', cleanedResponse.substring(0, 100));
 
       // First, try to parse the cleaned response as JSON
       try {
         const parsed = JSON.parse(cleanedResponse);
-        console.log('JSON parsed successfully!');
-        console.log('Parsed vocabulary length:', parsed.vocabulary?.length);
         return {
           vocabulary: Array.isArray(parsed.vocabulary) ? parsed.vocabulary : [],
           grammar: Array.isArray(parsed.grammar) ? parsed.grammar : [],
           conjugations: Array.isArray(parsed.conjugations) ? parsed.conjugations : [],
         };
-      } catch (e) {
-        console.log('JSON parse error:', e);
+      } catch {
         // Not valid JSON, try to extract JSON from the response
       }
 
       // Try to extract JSON object from the response (in case there's extra text)
       try {
         const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
-        console.log('JSON object match found:', !!jsonMatch);
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
-          console.log('Extracted JSON parsed successfully!');
           return {
             vocabulary: Array.isArray(parsed.vocabulary) ? parsed.vocabulary : [],
             grammar: Array.isArray(parsed.grammar) ? parsed.grammar : [],
             conjugations: Array.isArray(parsed.conjugations) ? parsed.conjugations : [],
           };
         }
-      } catch (e) {
-        console.log('JSON extraction error:', e);
+      } catch {
         // Try to repair truncated JSON
       }
 
       // Attempt to repair truncated JSON by extracting partial arrays
-      console.log('=== Attempting JSON repair ===');
       try {
         const result: { vocabulary: Array<{ term: string; definition: string; example: string }>; grammar: Array<{ title: string; explanation: string; examples: string[] }>; conjugations: Array<{ verb: string; tense: string; conjugations: Record<string, string> }> } = {
           vocabulary: [],
@@ -206,18 +192,13 @@ Return ONLY the JSON object, nothing else.`,
           }
         }
 
-        console.log('Repaired vocabulary count:', result.vocabulary.length);
-        console.log('Repaired grammar count:', result.grammar.length);
-        console.log('Repaired conjugations count:', result.conjugations.length);
-
         if (result.vocabulary.length > 0 || result.grammar.length > 0 || result.conjugations.length > 0) {
           return result;
         }
-      } catch (repairError) {
-        console.log('JSON repair failed:', repairError);
+      } catch {
+        // JSON repair failed
       }
 
-      console.log('=== PARSER FAILED, returning empty ===');
       // Return empty content as fallback
       return {
         vocabulary: [],
