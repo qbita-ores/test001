@@ -136,7 +136,85 @@ Return ONLY the JSON object, nothing else.`,
         }
       } catch (e) {
         console.log('JSON extraction error:', e);
-        // JSON extraction failed
+        // Try to repair truncated JSON
+      }
+
+      // Attempt to repair truncated JSON by extracting partial arrays
+      console.log('=== Attempting JSON repair ===');
+      try {
+        const result: { vocabulary: Array<{ term: string; definition: string; example: string }>; grammar: Array<{ title: string; explanation: string; examples: string[] }>; conjugations: Array<{ verb: string; tense: string; conjugations: Record<string, string> }> } = {
+          vocabulary: [],
+          grammar: [],
+          conjugations: [],
+        };
+
+        // Extract vocabulary items
+        const vocabMatch = cleanedResponse.match(/"vocabulary"\s*:\s*\[([\s\S]*?)(?:\]\s*,\s*"grammar"|$)/);
+        if (vocabMatch) {
+          const vocabContent = vocabMatch[1];
+          // Find all complete vocabulary objects
+          const vocabItems = vocabContent.match(/\{\s*"term"\s*:[^}]+"example"\s*:\s*"[^"]*"\s*\}/g);
+          if (vocabItems) {
+            for (const item of vocabItems) {
+              try {
+                const parsed = JSON.parse(item);
+                if (parsed.term && parsed.definition) {
+                  result.vocabulary.push(parsed);
+                }
+              } catch {
+                // Skip malformed items
+              }
+            }
+          }
+        }
+
+        // Extract grammar items
+        const grammarMatch = cleanedResponse.match(/"grammar"\s*:\s*\[([\s\S]*?)(?:\]\s*,\s*"conjugations"|$)/);
+        if (grammarMatch) {
+          const grammarContent = grammarMatch[1];
+          const grammarItems = grammarContent.match(/\{\s*"title"\s*:[^}]+"examples"\s*:\s*\[[^\]]*\]\s*\}/g);
+          if (grammarItems) {
+            for (const item of grammarItems) {
+              try {
+                const parsed = JSON.parse(item);
+                if (parsed.title && parsed.explanation) {
+                  result.grammar.push(parsed);
+                }
+              } catch {
+                // Skip malformed items
+              }
+            }
+          }
+        }
+
+        // Extract conjugation items
+        const conjMatch = cleanedResponse.match(/"conjugations"\s*:\s*\[([\s\S]*?)\]?\s*\}?$/);
+        if (conjMatch) {
+          const conjContent = conjMatch[1];
+          const conjItems = conjContent.match(/\{\s*"verb"\s*:[^}]+"conjugations"\s*:\s*\{[^}]+\}\s*\}/g);
+          if (conjItems) {
+            for (const item of conjItems) {
+              try {
+                const parsed = JSON.parse(item);
+                if (parsed.verb && parsed.tense) {
+                  result.conjugations.push(parsed);
+                }
+              } catch {
+                // Skip malformed items
+              }
+            }
+          }
+        }
+
+        console.log('Repaired vocabulary count:', result.vocabulary.length);
+        console.log('Repaired grammar count:', result.grammar.length);
+        console.log('Repaired conjugations count:', result.conjugations.length);
+
+        if (result.vocabulary.length > 0 || result.grammar.length > 0 || result.conjugations.length > 0) {
+          return result;
+        }
+      } catch (repairError) {
+        console.log('JSON repair failed:', repairError);
       }
 
       console.log('=== PARSER FAILED, returning empty ===');

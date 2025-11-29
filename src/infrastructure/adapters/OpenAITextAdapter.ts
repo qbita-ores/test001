@@ -21,7 +21,8 @@ export class OpenAITextAdapter implements ITextProviderPort {
   }
 
   private async makeRequest(
-    messages: Array<{ role: string; content: string }>
+    messages: Array<{ role: string; content: string }>,
+    maxTokens: number = 4096
   ): Promise<string> {
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
@@ -33,6 +34,7 @@ export class OpenAITextAdapter implements ITextProviderPort {
         model: this.model,
         messages,
         temperature: 0.7,
+        max_tokens: maxTokens,
       }),
     });
 

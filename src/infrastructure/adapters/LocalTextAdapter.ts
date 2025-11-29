@@ -28,7 +28,8 @@ export class LocalTextAdapter implements ITextProviderPort {
   }
 
   private async makeRequest(
-    messages: Array<{ role: string; content: string }>
+    messages: Array<{ role: string; content: string }>,
+    maxTokens: number = 4096
   ): Promise<string> {
     const url =
       this.providerType === 'ollama'
@@ -41,11 +42,15 @@ export class LocalTextAdapter implements ITextProviderPort {
             model: this.model,
             messages,
             stream: false,
+            options: {
+              num_predict: maxTokens,
+            },
           }
         : {
             model: this.model,
             messages,
             temperature: 0.7,
+            max_tokens: maxTokens,
           };
 
     const response = await fetch(url, {

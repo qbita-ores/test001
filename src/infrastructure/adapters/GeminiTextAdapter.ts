@@ -20,7 +20,7 @@ export class GeminiTextAdapter implements ITextProviderPort {
     this.model = model;
   }
 
-  private async makeRequest(prompt: string, systemInstruction?: string): Promise<string> {
+  private async makeRequest(prompt: string, systemInstruction?: string, maxTokens: number = 4096): Promise<string> {
     const url = `${this.baseUrl}/models/${this.model}:generateContent?key=${this.apiKey}`;
 
     const body: Record<string, unknown> = {
@@ -31,7 +31,7 @@ export class GeminiTextAdapter implements ITextProviderPort {
       ],
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 2048,
+        maxOutputTokens: maxTokens,
       },
     };
 
