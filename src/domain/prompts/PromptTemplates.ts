@@ -1,5 +1,4 @@
 import { Message } from '../entities/Chat';
-import { LessonLevel } from '../entities/Lesson';
 
 /**
  * Centralized prompt templates for all AI providers
@@ -46,7 +45,7 @@ Return ONLY a JSON array of 3 strings, no explanations. Example: ["Suggestion 1"
   
   lesson: {
     systemPrompt: (
-      level: LessonLevel,
+      level: string,
       targetLanguage: string,
       nativeLanguage: string
     ): string =>
@@ -81,8 +80,8 @@ Include 5-10 vocabulary items, 2-3 grammar points, and 2-3 verb conjugations rel
   // ============================================
   
   exerciseText: {
-    systemPrompt: (targetLanguage: string, level: LessonLevel): string =>
-      `You are a language learning content creator. Create engaging content in ${targetLanguage} appropriate for ${level} level students.
+    systemPrompt: (targetLanguage: string, level?: string): string =>
+      `You are a language learning content creator. Create engaging content in ${targetLanguage} appropriate for ${level || 'C1'} level students.
 
 CRITICAL: You MUST respond with ONLY a valid JSON object, no other text before or after.
 Do NOT include any introductory text like "Of course", "Here is", "Sure", etc.
@@ -99,12 +98,12 @@ The "content" field should contain ONLY the text to read/practice, without any t
 
     userPrompt: (
       partialText: string | undefined,
-      level: LessonLevel,
+      level: string | undefined,
       targetLanguage: string
     ): string =>
       partialText
-        ? `Complete or expand this text for a ${level} level ${targetLanguage} exercise: "${partialText}". Return the result as JSON with title, content, and instructions fields.`
-        : `Generate a ${level} level text in ${targetLanguage} suitable for a language learning exercise. Choose an interesting topic like travel, culture, daily life, technology, or current events. Return as JSON with title, content, and instructions fields.`,
+        ? `Complete or expand this text for a ${level || 'C1'} level ${targetLanguage} exercise: "${partialText}". Return the result as JSON with title, content, and instructions fields.`
+        : `Generate a ${level || 'C1'} level text in ${targetLanguage} suitable for a language learning exercise. Choose an interesting topic like travel, culture, daily life, technology, or current events. Return as JSON with title, content, and instructions fields.`,
     
     // Helper to parse the response
     parseResponse: (response: string): { title: string; content: string; instructions: string | null } => {
@@ -168,8 +167,8 @@ The "content" field should contain ONLY the text to read/practice, without any t
   // ============================================
   
   textCompletion: {
-    systemPrompt: (targetLanguage: string, level: LessonLevel): string =>
-      `You are helping a language student complete their text. Continue or expand the text naturally in ${targetLanguage} at ${level} level. Match the tone and style of the existing text.`,
+    systemPrompt: (targetLanguage: string, level?: string): string =>
+      `You are helping a language student complete their text. Continue or expand the text naturally in ${targetLanguage} at ${level || 'C1'} level. Match the tone and style of the existing text.`,
 
     userPrompt: (partialText: string | undefined): string =>
       partialText || 'Generate a topic suggestion for language learning.',

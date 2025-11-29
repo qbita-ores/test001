@@ -1,5 +1,7 @@
 import { LessonLevel } from './Lesson';
 
+export type { LessonLevel };
+
 export type TextProvider = 'openai' | 'gemini' | 'local';
 export type AudioProvider = 'openai' | 'gemini';
 export type LocalProvider = 'lmstudio' | 'ollama';

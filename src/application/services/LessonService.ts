@@ -9,12 +9,20 @@ import {
 } from '../../domain/entities/Lesson';
 import { Message } from '../../domain/entities/Chat';
 import { ITextProviderPort, IStoragePort } from '../../domain/ports';
+import { PromptTemplates, ExerciseTextResponse } from '../../domain/prompts';
 
 export class LessonService {
   constructor(
     private textProvider: ITextProviderPort,
     private storage: IStoragePort
   ) {}
+
+  /**
+   * Parse AI response to extract structured text
+   */
+  private parseExerciseTextResponse(response: string): ExerciseTextResponse {
+    return PromptTemplates.exerciseText.parseResponse(response);
+  }
 
   async createLesson(
     title: string,
@@ -80,25 +88,27 @@ export class LessonService {
     partialText: string,
     targetLanguage: string,
     level: LessonLevel
-  ): Promise<string> {
-    return this.textProvider.completeText({
+  ): Promise<ExerciseTextResponse> {
+    const response = await this.textProvider.completeText({
       partialText,
       purpose: 'context',
       targetLanguage,
       level,
     });
+    return this.parseExerciseTextResponse(response);
   }
 
   async suggestContext(
     targetLanguage: string,
     level: LessonLevel
-  ): Promise<string> {
-    return this.textProvider.generateExerciseText({
+  ): Promise<ExerciseTextResponse> {
+    const response = await this.textProvider.generateExerciseText({
       partialText: '',
       purpose: 'lesson',
       targetLanguage,
       level,
     });
+    return this.parseExerciseTextResponse(response);
   }
 
   async linkExerciseToLesson(

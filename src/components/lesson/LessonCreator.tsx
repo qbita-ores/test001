@@ -8,6 +8,7 @@ import {
   Volume2,
   ChevronDown,
   ChevronUp,
+  Info,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
@@ -15,12 +16,13 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { LessonLevel } from '@/domain/entities/Lesson';
+import { ExerciseTextResponse } from '@/domain/prompts';
 import { cn } from '@/lib/utils';
 
 interface LessonCreatorProps {
   onCreateLesson: (title: string, context: string, level: LessonLevel) => Promise<void>;
-  onSuggestContext: () => Promise<string>;
-  onCompleteContext: (partial: string) => Promise<string>;
+  onSuggestContext: () => Promise<ExerciseTextResponse>;
+  onCompleteContext: (partial: string) => Promise<ExerciseTextResponse>;
   chatAvailable?: boolean;
   isLoading?: boolean;
   defaultLevel?: LessonLevel;
@@ -36,6 +38,7 @@ export function LessonCreator({
 }: LessonCreatorProps) {
   const [title, setTitle] = useState('');
   const [context, setContext] = useState('');
+  const [instructions, setInstructions] = useState('');
   const [level, setLevel] = useState<LessonLevel>(defaultLevel);
   const [useChat, setUseChat] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -49,8 +52,10 @@ export function LessonCreator({
   const handleSuggestContext = useCallback(async () => {
     setIsGenerating(true);
     try {
-      const suggestion = await onSuggestContext();
-      setContext(suggestion);
+      const response = await onSuggestContext();
+      setTitle(response.title || '');
+      setContext(response.content || '');
+      setInstructions(response.instructions || '');
     } finally {
       setIsGenerating(false);
     }
@@ -60,18 +65,23 @@ export function LessonCreator({
     if (!context.trim()) return;
     setIsGenerating(true);
     try {
-      const completed = await onCompleteContext(context);
-      setContext(completed);
+      const response = await onCompleteContext(context);
+      if (response.title && !title.trim()) {
+        setTitle(response.title);
+      }
+      setContext(response.content || '');
+      setInstructions(response.instructions || '');
     } finally {
       setIsGenerating(false);
     }
-  }, [context, onCompleteContext]);
+  }, [context, title, onCompleteContext]);
 
   const handleSubmit = useCallback(async () => {
     if (!title.trim()) return;
     await onCreateLesson(title, useChat ? '' : context, level);
     setTitle('');
     setContext('');
+    setInstructions('');
   }, [title, context, level, useChat, onCreateLesson]);
 
   return (
@@ -173,6 +183,19 @@ export function LessonCreator({
               rows={4}
               disabled={isLoading}
             />
+            
+            {/* Instructions Info Box */}
+            {instructions && (
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-800">Instructions</p>
+                    <p className="text-sm text-blue-700 mt-1">{instructions}</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

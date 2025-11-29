@@ -71,10 +71,7 @@ export class ExerciseService {
       targetLanguage,
       level,
     });
-    console.log('Raw AI response:', response?.substring(0, 200));
-    const parsed = this.parseExerciseTextResponse(response);
-    console.log('Parsed response:', parsed);
-    return parsed;
+    return this.parseExerciseTextResponse(response);
   }
 
   async evaluateSpeaking(
