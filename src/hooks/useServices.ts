@@ -15,6 +15,8 @@ import { GeminiAudioAdapter } from '@/infrastructure/adapters/GeminiAudioAdapter
 import { ITextProviderPort } from '@/domain/ports/TextProviderPort';
 import { IAudioProviderPort } from '@/domain/ports/AudioProviderPort';
 import { Lesson } from '@/domain/entities/Lesson';
+import { Programme, createProgramme, updateProgramme as updateProgrammeEntity, publishProgramme, archiveProgramme, addCourseToProgramme, removeCoursFromProgramme, reorderProgrammeCourses } from '@/domain/entities/Programme';
+import { Course, createCourse, updateCourse as updateCourseEntity } from '@/domain/entities/Course';
 
 export function useServices() {
   const { settings } = useAppStore();
@@ -580,5 +582,257 @@ export function useSettings() {
     validateTextProvider,
     validateAudioProvider,
     setSettings,
+  };
+}
+
+export function useProgramme() {
+  const {
+    programmes,
+    currentProgramme,
+    courses,
+    settings,
+    setProgrammes,
+    setCurrentProgramme,
+    addProgramme,
+    updateProgramme: updateProgrammeInStore,
+    removeProgramme,
+    setCourses,
+  } = useAppStore();
+  const { storage } = useServices();
+
+  const loadProgrammes = useCallback(async () => {
+    const allProgrammes = await storage.getAllProgrammes();
+    setProgrammes(allProgrammes);
+  }, [storage, setProgrammes]);
+
+  const loadCourses = useCallback(async () => {
+    const allCourses = await storage.getAllCourses();
+    setCourses(allCourses);
+  }, [storage, setCourses]);
+
+  const createNewProgramme = useCallback(
+    async (data: {
+      title: string;
+      description: string;
+      level: 'C1' | 'C2' | 'C3';
+      targetLanguage: string;
+      nativeLanguage: string;
+      tags: string[];
+      estimatedHours: number;
+      weeksRecommended: number;
+    }) => {
+      const programme = createProgramme(
+        data.title,
+        data.description,
+        data.level,
+        data.targetLanguage,
+        data.nativeLanguage,
+        'current-user' // TODO: Replace with actual user ID
+      );
+      programme.tags = data.tags;
+      programme.duration = {
+        estimatedHours: data.estimatedHours,
+        weeksRecommended: data.weeksRecommended,
+      };
+      
+      await storage.saveProgramme(programme);
+      addProgramme(programme);
+      setCurrentProgramme(programme);
+      return programme;
+    },
+    [storage, addProgramme, setCurrentProgramme]
+  );
+
+  const updateCurrentProgramme = useCallback(
+    async (updates: Partial<Programme>) => {
+      if (!currentProgramme) return;
+      const updated = updateProgrammeEntity(currentProgramme, updates);
+      await storage.saveProgramme(updated);
+      updateProgrammeInStore(updated);
+      return updated;
+    },
+    [storage, currentProgramme, updateProgrammeInStore]
+  );
+
+  const publishCurrentProgramme = useCallback(async () => {
+    if (!currentProgramme) return;
+    const published = publishProgramme(currentProgramme);
+    await storage.saveProgramme(published);
+    updateProgrammeInStore(published);
+    return published;
+  }, [storage, currentProgramme, updateProgrammeInStore]);
+
+  const archiveCurrentProgramme = useCallback(async () => {
+    if (!currentProgramme) return;
+    const archived = archiveProgramme(currentProgramme);
+    await storage.saveProgramme(archived);
+    updateProgrammeInStore(archived);
+    return archived;
+  }, [storage, currentProgramme, updateProgrammeInStore]);
+
+  const deleteProgramme = useCallback(
+    async (id: string) => {
+      await storage.deleteProgramme(id);
+      removeProgramme(id);
+    },
+    [storage, removeProgramme]
+  );
+
+  const selectProgramme = useCallback(
+    async (id: string) => {
+      const programme = await storage.getProgramme(id);
+      setCurrentProgramme(programme);
+    },
+    [storage, setCurrentProgramme]
+  );
+
+  const addCourse = useCallback(
+    async (courseId: string) => {
+      if (!currentProgramme) return;
+      const updated = addCourseToProgramme(currentProgramme, courseId);
+      await storage.saveProgramme(updated);
+      updateProgrammeInStore(updated);
+      return updated;
+    },
+    [storage, currentProgramme, updateProgrammeInStore]
+  );
+
+  const removeCourseFromProgramme = useCallback(
+    async (courseId: string) => {
+      if (!currentProgramme) return;
+      const updated = removeCoursFromProgramme(currentProgramme, courseId);
+      await storage.saveProgramme(updated);
+      updateProgrammeInStore(updated);
+      return updated;
+    },
+    [storage, currentProgramme, updateProgrammeInStore]
+  );
+
+  const reorderCourses = useCallback(
+    async (courseIds: string[]) => {
+      if (!currentProgramme) return;
+      const updated = reorderProgrammeCourses(currentProgramme, courseIds);
+      await storage.saveProgramme(updated);
+      updateProgrammeInStore(updated);
+      return updated;
+    },
+    [storage, currentProgramme, updateProgrammeInStore]
+  );
+
+  // Get courses for current programme
+  const programmeCourses = useMemo(() => {
+    if (!currentProgramme) return [];
+    return currentProgramme.courseIds
+      .map(id => courses.find(c => c.id === id))
+      .filter((c): c is Course => c !== undefined);
+  }, [currentProgramme, courses]);
+
+  return {
+    programmes,
+    currentProgramme,
+    programmeCourses,
+    courses,
+    loadProgrammes,
+    loadCourses,
+    createProgramme: createNewProgramme,
+    updateProgramme: updateCurrentProgramme,
+    publishProgramme: publishCurrentProgramme,
+    archiveProgramme: archiveCurrentProgramme,
+    deleteProgramme,
+    selectProgramme,
+    setCurrentProgramme,
+    addCourse,
+    removeCourse: removeCourseFromProgramme,
+    reorderCourses,
+  };
+}
+
+export function useCourse() {
+  const {
+    courses,
+    currentCourse,
+    settings,
+    setCourses,
+    setCurrentCourse,
+    addCourse,
+    updateCourseInStore,
+    removeCourse,
+  } = useAppStore();
+  const { storage } = useServices();
+
+  const loadCourses = useCallback(async () => {
+    const allCourses = await storage.getAllCourses();
+    setCourses(allCourses);
+  }, [storage, setCourses]);
+
+  const createNewCourse = useCallback(
+    async (data: {
+      title: string;
+      description: string;
+      level: 'C1' | 'C2' | 'C3';
+      targetLanguage: string;
+      nativeLanguage: string;
+      tags: string[];
+      estimatedHours: number;
+    }) => {
+      const course = createCourse(
+        data.title,
+        data.description,
+        data.level,
+        data.targetLanguage,
+        data.nativeLanguage,
+        'current-user' // TODO: Replace with actual user ID
+      );
+      course.tags = data.tags;
+      course.duration = {
+        estimatedHours: data.estimatedHours,
+        lessonsCount: 0,
+        activitiesCount: 0,
+      };
+      
+      await storage.saveCourse(course);
+      addCourse(course);
+      setCurrentCourse(course);
+      return course;
+    },
+    [storage, addCourse, setCurrentCourse]
+  );
+
+  const updateCurrentCourse = useCallback(
+    async (updates: Partial<Course>) => {
+      if (!currentCourse) return;
+      const updated = updateCourseEntity(currentCourse, updates);
+      await storage.saveCourse(updated);
+      updateCourseInStore(updated);
+      return updated;
+    },
+    [storage, currentCourse, updateCourseInStore]
+  );
+
+  const deleteCourse = useCallback(
+    async (id: string) => {
+      await storage.deleteCourse(id);
+      removeCourse(id);
+    },
+    [storage, removeCourse]
+  );
+
+  const selectCourse = useCallback(
+    async (id: string) => {
+      const course = await storage.getCourse(id);
+      setCurrentCourse(course);
+    },
+    [storage, setCurrentCourse]
+  );
+
+  return {
+    courses,
+    currentCourse,
+    loadCourses,
+    createCourse: createNewCourse,
+    updateCourse: updateCurrentCourse,
+    deleteCourse,
+    selectCourse,
+    setCurrentCourse,
   };
 }

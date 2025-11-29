@@ -24,6 +24,7 @@ interface SidebarProps {
 
 const navigation = [
   { name: 'Chat', href: '/', icon: MessageSquare, color: 'text-blue-600' },
+  { name: 'Programmes', href: '/programmes', icon: GraduationCap, color: 'text-orange-600' },
   { name: 'Lessons', href: '/lessons', icon: BookOpen, color: 'text-indigo-600' },
   { name: 'Speaking', href: '/speaking', icon: Mic, color: 'text-green-600' },
   { name: 'Listening', href: '/listening', icon: Headphones, color: 'text-purple-600' },

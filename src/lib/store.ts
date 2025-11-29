@@ -6,6 +6,8 @@ import { Chat } from '@/domain/entities/Chat';
 import { Lesson } from '@/domain/entities/Lesson';
 import { SpeakingExercise, ListeningExercise } from '@/domain/entities/Exercise';
 import { Settings, defaultSettings } from '@/domain/entities/Settings';
+import { Programme } from '@/domain/entities/Programme';
+import { Course } from '@/domain/entities/Course';
 
 interface AppState {
   // Settings
@@ -48,11 +50,29 @@ interface AppState {
   updateListeningExercise: (exercise: ListeningExercise) => void;
   removeListeningExercise: (id: string) => void;
 
+  // Programmes
+  programmes: Programme[];
+  currentProgramme: Programme | null;
+  setProgrammes: (programmes: Programme[]) => void;
+  setCurrentProgramme: (programme: Programme | null) => void;
+  addProgramme: (programme: Programme) => void;
+  updateProgramme: (programme: Programme) => void;
+  removeProgramme: (id: string) => void;
+
+  // Courses
+  courses: Course[];
+  currentCourse: Course | null;
+  setCourses: (courses: Course[]) => void;
+  setCurrentCourse: (course: Course | null) => void;
+  addCourse: (course: Course) => void;
+  updateCourseInStore: (course: Course) => void;
+  removeCourse: (id: string) => void;
+
   // UI State
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
-  activeTab: 'chat' | 'lessons' | 'speaking' | 'listening' | 'settings';
-  setActiveTab: (tab: 'chat' | 'lessons' | 'speaking' | 'listening' | 'settings') => void;
+  activeTab: 'chat' | 'lessons' | 'speaking' | 'listening' | 'settings' | 'programmes' | 'courses';
+  setActiveTab: (tab: 'chat' | 'lessons' | 'speaking' | 'listening' | 'settings' | 'programmes' | 'courses') => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -144,6 +164,44 @@ export const useAppStore = create<AppState>()(
           listeningExercises: state.listeningExercises.filter((e) => e.id !== id),
           currentListeningExercise:
             state.currentListeningExercise?.id === id ? null : state.currentListeningExercise,
+        })),
+
+      // Programmes
+      programmes: [],
+      currentProgramme: null,
+      setProgrammes: (programmes) => set({ programmes }),
+      setCurrentProgramme: (currentProgramme) => set({ currentProgramme }),
+      addProgramme: (programme) =>
+        set((state) => ({ programmes: [programme, ...state.programmes] })),
+      updateProgramme: (programme) =>
+        set((state) => ({
+          programmes: state.programmes.map((p) => (p.id === programme.id ? programme : p)),
+          currentProgramme:
+            state.currentProgramme?.id === programme.id ? programme : state.currentProgramme,
+        })),
+      removeProgramme: (id) =>
+        set((state) => ({
+          programmes: state.programmes.filter((p) => p.id !== id),
+          currentProgramme: state.currentProgramme?.id === id ? null : state.currentProgramme,
+        })),
+
+      // Courses
+      courses: [],
+      currentCourse: null,
+      setCourses: (courses) => set({ courses }),
+      setCurrentCourse: (currentCourse) => set({ currentCourse }),
+      addCourse: (course) =>
+        set((state) => ({ courses: [course, ...state.courses] })),
+      updateCourseInStore: (course) =>
+        set((state) => ({
+          courses: state.courses.map((c) => (c.id === course.id ? course : c)),
+          currentCourse:
+            state.currentCourse?.id === course.id ? course : state.currentCourse,
+        })),
+      removeCourse: (id) =>
+        set((state) => ({
+          courses: state.courses.filter((c) => c.id !== id),
+          currentCourse: state.currentCourse?.id === id ? null : state.currentCourse,
         })),
 
       // UI State
