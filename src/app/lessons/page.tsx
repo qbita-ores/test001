@@ -97,7 +97,7 @@ export default function LessonsPage() {
         />
       }
     >
-      <div className="p-6">
+      <div className={showCreator || !currentLesson ? "p-6" : "p-6 h-full flex flex-col"}>
         {showCreator || !currentLesson ? (
           <LessonCreator
             onCreateLesson={handleCreateLesson}
@@ -108,7 +108,9 @@ export default function LessonsPage() {
             defaultLevel={settings.defaultLevel}
           />
         ) : (
-          <LessonViewer lesson={currentLesson} isLoading={isGeneratingContent} />
+          <div className="flex-1 flex flex-col min-h-0">
+            <LessonViewer lesson={currentLesson} isLoading={isGeneratingContent} />
+          </div>
         )}
       </div>
     </MainLayout>

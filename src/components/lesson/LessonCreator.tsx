@@ -274,9 +274,9 @@ export function LessonViewer({ lesson, onGenerateAudio, isLoading = false }: Les
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6 text-white">
+    <div className="h-full flex flex-col">
+      {/* Header - Fixed */}
+      <div className="flex-shrink-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-t-xl p-6 text-white">
         <h2 className="text-2xl font-bold">{lesson.title}</h2>
         <span className="inline-block mt-2 px-3 py-1 bg-white/20 rounded-full text-sm">
           Level {lesson.level}
@@ -285,47 +285,49 @@ export function LessonViewer({ lesson, onGenerateAudio, isLoading = false }: Les
 
       {showLoading ? (
         /* Loading State */
-        <Card className="p-8">
-          <div className="flex flex-col items-center justify-center space-y-6">
-            <div className="relative">
-              <div className="w-20 h-20 border-4 border-blue-200 rounded-full animate-spin border-t-blue-600"></div>
-              <BookOpen className="absolute inset-0 m-auto h-8 w-8 text-blue-600" />
-            </div>
-            <div className="text-center space-y-2">
-              <h3 className="text-xl font-semibold text-gray-800">Generating Lesson Content</h3>
-              <p className="text-gray-500">
-                Our AI is creating vocabulary, grammar points, and conjugations for your lesson...
-              </p>
-            </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-400">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>This may take a few moments</span>
-            </div>
-            
-            {/* Animated placeholder tabs */}
-            <div className="w-full mt-4">
-              <div className="flex space-x-8 border-b border-gray-200 pb-2">
-                <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded w-28 animate-pulse"></div>
+        <Card className="flex-1 flex flex-col overflow-hidden rounded-t-none border-t-0">
+          <div className="flex-1 overflow-y-auto p-8">
+            <div className="flex flex-col items-center justify-center space-y-6">
+              <div className="relative">
+                <div className="w-20 h-20 border-4 border-blue-200 rounded-full animate-spin border-t-blue-600"></div>
+                <BookOpen className="absolute inset-0 m-auto h-8 w-8 text-blue-600" />
               </div>
-              <div className="mt-6 space-y-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="space-y-2 pb-4 border-b border-gray-100">
-                    <div className="h-5 bg-gray-200 rounded w-32 animate-pulse"></div>
-                    <div className="h-4 bg-gray-100 rounded w-full animate-pulse"></div>
-                    <div className="h-4 bg-blue-50 rounded w-3/4 animate-pulse"></div>
-                  </div>
-                ))}
+              <div className="text-center space-y-2">
+                <h3 className="text-xl font-semibold text-gray-800">Generating Lesson Content</h3>
+                <p className="text-gray-500">
+                  Our AI is creating vocabulary, grammar points, and conjugations for your lesson...
+                </p>
+              </div>
+              <div className="flex items-center space-x-2 text-sm text-gray-400">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>This may take a few moments</span>
+              </div>
+              
+              {/* Animated placeholder tabs */}
+              <div className="w-full mt-4">
+                <div className="flex space-x-8 border-b border-gray-200 pb-2">
+                  <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 rounded w-28 animate-pulse"></div>
+                </div>
+                <div className="mt-6 space-y-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="space-y-2 pb-4 border-b border-gray-100">
+                      <div className="h-5 bg-gray-200 rounded w-32 animate-pulse"></div>
+                      <div className="h-4 bg-gray-100 rounded w-full animate-pulse"></div>
+                      <div className="h-4 bg-blue-50 rounded w-3/4 animate-pulse"></div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </Card>
       ) : (
         /* Tabs Content */
-        <Card>
-          {/* Tab Headers */}
-          <div className="border-b border-gray-200">
+        <Card className="flex-1 flex flex-col overflow-hidden rounded-t-none border-t-0">
+          {/* Tab Headers - Fixed */}
+          <div className="flex-shrink-0 border-b border-gray-200 bg-white">
             <div className="flex space-x-8 px-6">
               {tabs.map((tab) => (
                 <button
@@ -344,8 +346,9 @@ export function LessonViewer({ lesson, onGenerateAudio, isLoading = false }: Les
             </div>
           </div>
 
-          {/* Tab Content */}
-          <CardContent className="p-6">
+          {/* Tab Content - Scrollable */}
+          <div className="flex-1 overflow-y-auto">
+            <CardContent className="p-6">
             {/* Vocabulary Tab */}
             {activeTab === 'vocabulary' && (
               <div className="space-y-6">
@@ -436,7 +439,8 @@ export function LessonViewer({ lesson, onGenerateAudio, isLoading = false }: Les
                 )}
               </div>
             )}
-          </CardContent>
+            </CardContent>
+          </div>
         </Card>
       )}
     </div>
