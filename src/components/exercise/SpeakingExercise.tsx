@@ -259,8 +259,8 @@ export function SpeakingExerciseViewer({
                 {/* Recording Section - Fixed at bottom */}
                 {!exercise.feedback && (
                   <div className="flex-shrink-0 pt-4 mt-4 border-t border-gray-200 bg-white">
-                    <div className="text-center space-y-4">
-                      <p className="text-sm text-gray-600">
+                    <div className="flex flex-col items-center space-y-4">
+                      <p className="text-sm text-gray-600 text-center">
                         Read the text above aloud. When you&apos;re ready, click the button to start recording.
                       </p>
                       <AudioRecorder onRecordingComplete={handleRecordingComplete} />
@@ -268,7 +268,7 @@ export function SpeakingExerciseViewer({
                         <Button
                           onClick={handleEvaluate}
                           disabled={isEvaluating || isLoading}
-                          className="w-full max-w-md mx-auto"
+                          className="w-full max-w-md"
                         >
                           {isEvaluating ? (
                             <>

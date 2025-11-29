@@ -68,7 +68,7 @@ export function AudioRecorder({ onRecordingComplete, className }: AudioRecorderP
   }, [audio, resetRecording]);
 
   return (
-    <div className={cn("flex items-center space-x-3", className)}>
+    <div className={cn("flex items-center justify-center space-x-3", className)}>
       {!audioBlob ? (
         <Button
           variant={isRecording ? "destructive" : "default"}
