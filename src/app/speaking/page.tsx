@@ -108,7 +108,7 @@ export default function SpeakingPage() {
         />
       }
     >
-      <div className="p-6">
+      <div className={showCreator || !currentSpeakingExercise ? "p-6" : "p-6 h-full flex flex-col"}>
         {showCreator || !currentSpeakingExercise ? (
           <SpeakingExerciseCreator
             onCreateExercise={handleCreateExercise}
@@ -117,11 +117,13 @@ export default function SpeakingPage() {
             defaultLevel={settings.defaultLevel}
           />
         ) : (
-          <SpeakingExerciseViewer
-            exercise={currentSpeakingExercise}
-            onEvaluate={handleEvaluate}
-            isLoading={isLoading}
-          />
+          <div className="flex-1 flex flex-col min-h-0">
+            <SpeakingExerciseViewer
+              exercise={currentSpeakingExercise}
+              onEvaluate={handleEvaluate}
+              isLoading={isLoading}
+            />
+          </div>
         )}
       </div>
     </MainLayout>

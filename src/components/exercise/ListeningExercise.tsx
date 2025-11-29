@@ -191,17 +191,20 @@ export function ListeningExerciseViewer({
   }, [transcription, onEvaluate]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-6 text-white">
+    <div className="h-full flex flex-col">
+      {/* Header - Fixed */}
+      <div className="flex-shrink-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-t-xl p-6 text-white">
         <h2 className="text-2xl font-bold">{exercise.title}</h2>
         <span className="inline-block mt-2 px-3 py-1 bg-white/20 rounded-full text-sm">
           Level {exercise.level}
         </span>
       </div>
 
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="space-y-6 p-1">
       {/* Audio Player */}
-      <Card>
+      <Card className="rounded-t-none border-t-0">
         <CardHeader>
           <CardTitle>Listen to the Audio</CardTitle>
         </CardHeader>
@@ -280,6 +283,8 @@ export function ListeningExerciseViewer({
           originalText={exercise.originalText}
         />
       )}
+        </div>
+      </div>
     </div>
   );
 }

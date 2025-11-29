@@ -118,7 +118,7 @@ export default function ListeningPage() {
         />
       }
     >
-      <div className="p-6">
+      <div className={showCreator || !currentListeningExercise ? "p-6" : "p-6 h-full flex flex-col"}>
         {showCreator || !currentListeningExercise ? (
           <ListeningExerciseCreator
             onCreateExercise={handleCreateExercise}
@@ -127,12 +127,14 @@ export default function ListeningPage() {
             defaultLevel={settings.defaultLevel}
           />
         ) : (
-          <ListeningExerciseViewer
-            exercise={currentListeningExercise}
-            onGenerateAudio={handleGenerateAudio}
-            onEvaluate={handleEvaluate}
-            isLoading={isLoading}
-          />
+          <div className="flex-1 flex flex-col min-h-0">
+            <ListeningExerciseViewer
+              exercise={currentListeningExercise}
+              onGenerateAudio={handleGenerateAudio}
+              onEvaluate={handleEvaluate}
+              isLoading={isLoading}
+            />
+          </div>
         )}
       </div>
     </MainLayout>
